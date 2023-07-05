@@ -1,0 +1,68 @@
+{
+  "name": "vscode-mfront-syntax",
+  "displayName": "MFront Syntax Highlighting",
+  "description": "Adds syntax highlighting for MFront files.",
+  "version": "1.0.0",
+  "publisher": "maxence-wz",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "grammars": [
+      {
+        "language": "mfront",
+        "scopeName": "source.mfront",
+        "path": "./syntaxes/mfront.tmLanguage.json",
+        "embeddedLanguages": {
+          "source.cpp": "cpp"
+        }
+      }
+    ],
+    "languages": [
+      {
+        "id": "mfront",
+        "aliases": [
+          "MFront"
+        ],
+        "extensions": [
+          ".mfront"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maxence-wz/vscode-mfront.git"
+  },
+  "bugs": {
+    "url": "https://github.com/maxence-wz/vscode-mfront/issues"
+  },
+  "homepage": "https://github.com/maxence-wz/vscode-mfront",
+  "icon": "icon.png",
+  "keywords": [
+    "MFront",
+    "syntax",
+    "highlighting",
+    "cpp",
+    "materials",
+    "vscode-extension"
+  ],
+  "files": [
+    "syntaxes/mfront.tmLanguage.json",
+    "language-configuration.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1"
+  }
+}

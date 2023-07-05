@@ -1,0 +1,20 @@
+{
+	"fileTypes": ["mfront"],
+	"name": "MFront",
+	"scopeName": "source.mfront",
+	"patterns": [
+	  {
+		"name": "keyword.control.mfront",
+		"match": "@(AdditionalConvergenceChecks|Algorithm|APosterioriTimeStepScalingFactor|APrioriTimeStepScalingFactor|Author|AuxiliaryStateVar|AuxiliaryStateVariable|AxialGrowth|Behaviour|Bounds|Brick|Coef|CompareToNumericalJacobian|ComputedVar|ComputeFinalStress|ComputeStiffnessTensor|ComputeStress|ComputeStressFreeExpansion|ComputeThermalExpansion|CrystalStructure|Data|Date|Description|Derivative|DislocationsMeanFreePathInteractionMatrix|DissipatedEnergy|DSL|ElasticMaterialProperties|Epsilon|ExternalStateVar|ExternalStateVariable|FlowRule|Function|GlidingSystem|GlidingSystems|HillTensor|Import|Includes|InitJacobian|InitJacobianInvert|InitLocalVariables|InitLocalVars|Initialize|InitializeFunction|InitializeFunctionVariable|InitializeJacobian|InitializeJacobianInvert|InitializeLocalVariables|Input|IntegerConstant|IntegrationVariable|Integrator|InteractionMatrix|Interface|InternalEnergy|IsTangentOperatorSymmetric|IsotropicBehaviour|IsotropicElasticBehaviour|IterMax|JacobianComparisonCriterion|JacobianComparisonCriterium|Law|Library|Link|LocalVar|LocalVariable|MFront|Material|MaterialLaw|MaterialProperty|MaximalTimeStepScalingFactor|MaximumIncrementValuePerIteration|MaximumNumberOfIterations|Members|MinimalTimeStep|MinimalTimeStepScalingFactor|Model|ModellingHypotheses|ModellingHypothesis|NumericallyComputedJacobianBlocks|OrthotropicBehaviour|Output|Parameter|Parser|PerturbationValueForNumericalJacobianComputation|PhysicalBounds|PostProcessing|PostProcessingVariable|PredictionOperator|Private|ProcessNewCorrection|ProcessNewEstimate|Profiling|ProvidesSymmetricTangentOperator|RejectCurrentCorrection|Relocation|RequireStiffnessOperator|RequireStiffnessTensor|RequireThermalExpansionCoefficientTensor|SlidingSystem|SlidingSystems|SlipSystem|SlipSystems|Sources|SpeedOfSound|StateVar|StateVariable|StaticVar|StaticVariable|StrainMeasure|StressErrorNormalisationFactor|StressErrorNormalizationFactor|Swelling|TangentOperator|Theta|UnitSystem|UpdateAuxiliaryStateVariables|UpdateAuxiliaryStateVars|UsableInPurelyImplicitResolution|UseQt)\\b",
+		"captures": {
+		  "0": {
+			"name": "keyword.control.mfront"
+		  }
+		}
+	  },
+	  {
+		"include": "source.cpp"
+	  }
+	]
+  }
+  
