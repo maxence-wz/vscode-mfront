@@ -1,6 +1,6 @@
 {
   "name": "vscode-mfront-syntax",
-  "displayName": "MFront Syntax Highlighting",
+  "displayName": "MFront",
   "description": "Adds syntax highlighting for MFront files.",
   "version": "1.0.0",
   "publisher": "maxence-wz",
