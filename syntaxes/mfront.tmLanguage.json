@@ -4,6 +4,16 @@
 	"scopeName": "source.mfront",
 	"patterns": [
 	  {
+		"comment": "@Bounds / @PhysicalBounds intervals use an inverted bracket to mark an open (infinite) endpoint, e.g. '@PhysicalBounds M in [0:*[;' (see the MFront book). That leaves an unmatched '[' on the line. Without this single-line 'match' rule, the '[' falls through to the embedded source.cpp grammar, which treats it as the start of the multi-line meta.bracket.square.array.cpp begin/end pair. That pair never finds its ']' and stays open for the rest of the file, so every '@Xxx' keyword after the first bounds declaration silently loses the keyword.control.mfront scope (it gets tokenized as a plain C++ identifier instead). This rule must stay before the general keyword rule below: both start at the same index on a '@Bounds'/'@PhysicalBounds' line, and TextMate resolves that tie by list order.",
+		"match": "(@(?:Physical)?Bounds)\\b(\\s+[A-Za-z_]\\w*\\s+)(in)(\\s*[\\[\\]][^;]*)",
+		"captures": {
+		  "1": { "name": "keyword.control.mfront" },
+		  "2": { "name": "variable.other.mfront" },
+		  "3": { "name": "keyword.operator.mfront" },
+		  "4": { "name": "constant.numeric.mfront" }
+		}
+	  },
+	  {
 		"name": "keyword.control.mfront",
 		"match": "@(AdditionalConvergenceChecks|Algorithm|APosterioriTimeStepScalingFactor|APrioriTimeStepScalingFactor|Author|AuxiliaryStateVar|AuxiliaryStateVariable|AxialGrowth|Behaviour|Bounds|Brick|Coef|CompareToNumericalJacobian|ComputedVar|ComputeFinalStress|ComputeStiffnessTensor|ComputeStress|ComputeStressFreeExpansion|ComputeThermalExpansion|CrystalStructure|Data|Date|Description|Derivative|DislocationsMeanFreePathInteractionMatrix|DissipatedEnergy|DSL|ElasticMaterialProperties|Epsilon|ExternalStateVar|ExternalStateVariable|FlowRule|Function|GlidingSystem|GlidingSystems|HillTensor|Import|Includes|InitJacobian|InitJacobianInvert|InitLocalVariables|InitLocalVars|Initialize|InitializeFunction|InitializeFunctionVariable|InitializeJacobian|InitializeJacobianInvert|InitializeLocalVariables|Input|IntegerConstant|IntegrationVariable|Integrator|InteractionMatrix|Interface|InternalEnergy|IsTangentOperatorSymmetric|IsotropicBehaviour|IsotropicElasticBehaviour|IterMax|JacobianComparisonCriterion|JacobianComparisonCriterium|Law|Library|Link|LocalVar|LocalVariable|MFront|Material|MaterialLaw|MaterialProperty|MaximalTimeStepScalingFactor|MaximumIncrementValuePerIteration|MaximumNumberOfIterations|Members|MinimalTimeStep|MinimalTimeStepScalingFactor|Model|ModellingHypotheses|ModellingHypothesis|NumericallyComputedJacobianBlocks|OrthotropicBehaviour|Output|Parameter|Parser|PerturbationValueForNumericalJacobianComputation|PhysicalBounds|PostProcessing|PostProcessingVariable|PredictionOperator|Private|ProcessNewCorrection|ProcessNewEstimate|Profiling|ProvidesSymmetricTangentOperator|RejectCurrentCorrection|Relocation|RequireStiffnessOperator|RequireStiffnessTensor|RequireThermalExpansionCoefficientTensor|SlidingSystem|SlidingSystems|SlipSystem|SlipSystems|Sources|SpeedOfSound|StateVar|StateVariable|StaticVar|StaticVariable|StrainMeasure|StressErrorNormalisationFactor|StressErrorNormalizationFactor|Swelling|TangentOperator|Theta|UnitSystem|UpdateAuxiliaryStateVariables|UpdateAuxiliaryStateVars|UsableInPurelyImplicitResolution|UseQt)\\b",
 		"captures": {
