@@ -19,6 +19,13 @@
         "embeddedLanguages": {
           "source.cpp": "cpp"
         }
+      },
+      {
+        "scopeName": "mfront.keywords.injection",
+        "path": "./syntaxes/mfront-keywords.injection.tmLanguage.json",
+        "injectTo": [
+          "source.mfront"
+        ]
       }
     ],
     "languages": [
@@ -53,6 +60,7 @@
   ],
   "files": [
     "syntaxes/mfront.tmLanguage.json",
+    "syntaxes/mfront-keywords.injection.tmLanguage.json",
     "language-configuration.json",
     "README.md",
     "LICENSE"
