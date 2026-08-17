@@ -1,0 +1,30 @@
+// Regression fixture: free-form prose inside @Description{...} that parses
+// as a C++ declaration.
+//
+// The minimal leaking shape is `Word Word, Word (...)`: source.cpp reads it
+// as a declaration with a comma-separated declarator list whose last
+// declarator has a constructor-style initializer --
+//   `A B, C (D)`  ==  type A, declarator B, declarator C(D)
+// MFront prose ends sentences with '.', never ';', so that declaration is
+// never terminated. Its meta.declaration.cpp scope then swallows the block's
+// own closing '}' and leaks to EOF, suppressing keyword.control.mfront on
+// every @keyword below.
+//
+// Academic citations hit this shape naturally, which is how it shows up in
+// real files. The example below is the one @maxence-wz used while reviewing
+// PR #1.
+//
+// Every line starting with @Xxx in this file must be highlighted.
+
+@DSL Implicit;
+@Behaviour DescriptionProse;
+
+@Description
+{
+  Reference Smith, J. (2020). Some Journal(Volume, Issue).
+};
+
+@MaterialProperty real k;
+
+@Epsilon 1.e-14;
+@Theta 1.0;
