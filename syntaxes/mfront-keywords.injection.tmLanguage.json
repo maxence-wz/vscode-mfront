@@ -1,0 +1,26 @@
+{
+  "comment": "Grammar injection: repeats the MFront keyword rules with injectionSelector 'L:source.mfront -comment -string', so they also match inside scopes nested by the embedded source.cpp grammar (e.g. a meta.block.cpp opened by an '@Description{ ... }' block that source.cpp fails to close, because MFront allows free-form prose inside it that reads as invalid C++). The base grammar's keyword rule only lives at the root level, so once any such nested scope opens, every following '@Xxx' keyword loses keyword.control.mfront for the rest of the file. The 'L:' prefix makes the injection apply on the left, i.e. before the grammar's own patterns, which is what lets it reach into those nested scopes. '-comment -string' excludes commented-out and quoted text, so a keyword inside '// @UseQt true;' is not re-highlighted as if it were live code.",
+  "scopeName": "mfront.keywords.injection",
+  "injectionSelector": "L:source.mfront -comment -string",
+  "patterns": [
+    {
+      "comment": "Same @Bounds / @PhysicalBounds rule as in mfront.tmLanguage.json; duplicated here so it also protects bounds declarations that happen to sit inside an already-open nested scope.",
+      "match": "(@(?:Physical)?Bounds)\\b(\\s+[A-Za-z_]\\w*\\s+)(in)(\\s*[\\[\\]][^;]*)",
+      "captures": {
+        "1": { "name": "keyword.control.mfront" },
+        "2": { "name": "variable.other.mfront" },
+        "3": { "name": "keyword.operator.mfront" },
+        "4": { "name": "constant.numeric.mfront" }
+      }
+    },
+    {
+      "name": "keyword.control.mfront",
+      "match": "@(AdditionalConvergenceChecks|Algorithm|APosterioriTimeStepScalingFactor|APrioriTimeStepScalingFactor|Author|AuxiliaryStateVar|AuxiliaryStateVariable|AxialGrowth|Behaviour|Bounds|Brick|Coef|CompareToNumericalJacobian|ComputedVar|ComputeFinalStress|ComputeStiffnessTensor|ComputeStress|ComputeStressFreeExpansion|ComputeThermalExpansion|CrystalStructure|Data|Date|Description|Derivative|DislocationsMeanFreePathInteractionMatrix|DissipatedEnergy|DSL|ElasticMaterialProperties|Epsilon|ExternalStateVar|ExternalStateVariable|FlowRule|Function|GlidingSystem|GlidingSystems|HillTensor|Import|Includes|InitJacobian|InitJacobianInvert|InitLocalVariables|InitLocalVars|Initialize|InitializeFunction|InitializeFunctionVariable|InitializeJacobian|InitializeJacobianInvert|InitializeLocalVariables|Input|IntegerConstant|IntegrationVariable|Integrator|InteractionMatrix|Interface|InternalEnergy|IsTangentOperatorSymmetric|IsotropicBehaviour|IsotropicElasticBehaviour|IterMax|JacobianComparisonCriterion|JacobianComparisonCriterium|Law|Library|Link|LocalVar|LocalVariable|MFront|Material|MaterialLaw|MaterialProperty|MaximalTimeStepScalingFactor|MaximumIncrementValuePerIteration|MaximumNumberOfIterations|Members|MinimalTimeStep|MinimalTimeStepScalingFactor|Model|ModellingHypotheses|ModellingHypothesis|NumericallyComputedJacobianBlocks|OrthotropicBehaviour|Output|Parameter|Parser|PerturbationValueForNumericalJacobianComputation|PhysicalBounds|PostProcessing|PostProcessingVariable|PredictionOperator|Private|ProcessNewCorrection|ProcessNewEstimate|Profiling|ProvidesSymmetricTangentOperator|RejectCurrentCorrection|Relocation|RequireStiffnessOperator|RequireStiffnessTensor|RequireThermalExpansionCoefficientTensor|SlidingSystem|SlidingSystems|SlipSystem|SlipSystems|Sources|SpeedOfSound|StateVar|StateVariable|StaticVar|StaticVariable|StrainMeasure|StressErrorNormalisationFactor|StressErrorNormalizationFactor|Swelling|TangentOperator|Theta|UnitSystem|UpdateAuxiliaryStateVariables|UpdateAuxiliaryStateVars|UsableInPurelyImplicitResolution|UseQt)\\b",
+      "captures": {
+        "0": {
+          "name": "keyword.control.mfront"
+        }
+      }
+    }
+  ]
+}
