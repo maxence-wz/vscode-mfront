@@ -1,0 +1,20 @@
+// The block is written in several shapes across real files: brace on the
+// same line, brace on the next line, with or without the trailing ';'.
+@DSL Implicit;
+@Behaviour DescriptionBlockShapes;
+
+@Description{ A single-line description. };
+
+@MaterialProperty real a;
+
+@Description
+{
+}
+
+@MaterialProperty real b;
+
+@Description {
+  Closing brace with no trailing semicolon.
+}
+
+@Epsilon 1.e-14;

@@ -58,17 +58,11 @@
     "materials",
     "vscode-extension"
   ],
-  "files": [
-    "syntaxes/mfront.tmLanguage.json",
-    "syntaxes/mfront-keywords.injection.tmLanguage.json",
-    "language-configuration.json",
-    "README.md",
-    "LICENSE"
-  ],
   "scripts": {
     "package": "vsce package",
     "publish": "vsce publish",
-    "test": "node --test test/"
+    "test": "node --test",
+    "keywords": "node tools/update-keywords.js"
   },
   "devDependencies": {
     "@vscode/test-cli": "^0.0.10",

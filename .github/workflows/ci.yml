@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Grammar regression tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 18 is the oldest release the test runner's `node --test` works on;
+        # 22 is current LTS. Both are exercised because `node --test` argument
+        # handling has changed between them.
+        node-version: [18, 22]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      # language-configuration.json is deliberately not checked here: VS Code
+      # reads it as JSONC and it legitimately contains // comments, so
+      # JSON.parse would fail on a perfectly valid file.
+      - name: Validate grammar JSON is well-formed
+        run: |
+          for f in syntaxes/*.tmLanguage.json package.json; do
+            echo "Checking $f"
+            node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))"
+          done
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The suite tokenizes against the real cpp.tmLanguage.json taken from a
+      # VS Code build, which @vscode/test-electron downloads into .vscode-test
+      # (~330 MB). Cached so only the first run on a given VS Code release pays
+      # for it.
+      - name: Cache the VS Code build used for cpp.tmLanguage.json
+        uses: actions/cache@v4
+        with:
+          path: .vscode-test
+          key: vscode-test-${{ runner.os }}
+
+      - name: Run tests
+        run: npm test
+
+  package:
+    name: Package .vsix
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install vsce
+        run: npm install -g @vscode/vsce
+
+      # Also a regression guard on packaging itself: vsce fails outright if a
+      # "files" allowlist is ever reintroduced alongside .vscodeignore.
+      - name: Package extension
+        run: npx vsce package --out vscode-mfront-syntax.vsix
+
+      - name: Upload .vsix as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vscode-mfront-syntax-vsix
+          path: vscode-mfront-syntax.vsix

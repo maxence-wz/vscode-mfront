@@ -1,0 +1,20 @@
+// Real descriptions embed LaTeX whose braces are NOT balanced: '\left\{'
+// opens one that '\right.' never closes. Ending the block on the next '}'
+// would stop inside the prose; the block's own brace is the one on its own
+// line. Shape taken from tfel's ImplicitNorton_LevenbergMarquardt.mfront.
+@DSL Implicit;
+@Behaviour DescriptionLatexBraces;
+@Description{
+  This file implements the Norton law, described as:
+  "$$"
+  "\left\{"
+  "  \begin{aligned}"
+  "    \tdepsilonvis &= \dot{p}\,\tenseur{n} \\"
+  "    \dot{p}       &= A\,\sigmaeq^{m}"
+  "  \end{aligned}"
+  "\right."
+  "$$"
+}
+
+@Epsilon 1.e-11;
+@MaterialProperty stress young;

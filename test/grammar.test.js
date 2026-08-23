@@ -142,6 +142,37 @@ function assertAllDirectivesHighlighted(fixture) {
   );
 }
 
+// A well-formed .mfront file closes every scope it opens, so by EOF we should
+// be back at the document root. This is a second, independent assertion: it
+// catches leaks the directive check above structurally cannot see. When an
+// apostrophe in @Description prose opens string.quoted.single.cpp, every
+// following @keyword sits *inside* a string scope -- and a keyword quoted in a
+// string genuinely should not be highlighted, so a check that skips those would
+// report the whole file clean.
+function assertNoScopeLeakAtEof(fixture) {
+  const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
+  let ruleStack = vsctm.INITIAL;
+  for (const line of lines) {
+    ruleStack = grammar.tokenizeLine(line, ruleStack).ruleStack;
+  }
+  // Read the open scopes from a synthetic trailing empty line rather than from
+  // the last real token: a file legitimately ending on '}' has that token
+  // carrying meta.block.cpp, which is the block being closed, not a leak.
+  const tail = grammar.tokenizeLine('', ruleStack);
+  const open = (tail.tokens[0] ? tail.tokens[0].scopes : ['source.mfront'])
+    .filter((s) => s !== 'source.mfront');
+  assert.deepStrictEqual(
+    open, [],
+    `${fixture}: scope still open at EOF -- it swallows the rest of the file`
+  );
+}
+
+function listCorpus() {
+  return fs.readdirSync(path.join(FIXTURES, 'corpus'))
+    .filter((f) => f.endsWith('.mfront'))
+    .sort();
+}
+
 // --- tests ----------------------------------------------------------------
 
 test('keywords stay highlighted after an open-ended bounds interval', () => {
@@ -181,4 +212,68 @@ test('the bounds interval does not open a C++ bracket scope', () => {
     [],
     'a bounds interval leaked a meta.bracket.square scope into later lines'
   );
+});
+
+// --- @Description prose is not C++ ----------------------------------------
+
+test('keywords stay highlighted after an apostrophe in @Description prose', () => {
+  assertAllDirectivesHighlighted('description-apostrophe.mfront');
+  assertNoScopeLeakAtEof('description-apostrophe.mfront');
+});
+
+test('keywords stay highlighted after an unclosed double quote in @Description prose', () => {
+  assertAllDirectivesHighlighted('description-unclosed-double-quote.mfront');
+  assertNoScopeLeakAtEof('description-unclosed-double-quote.mfront');
+});
+
+test('unbalanced LaTeX braces in @Description do not end the block early', () => {
+  assertAllDirectivesHighlighted('description-latex-braces.mfront');
+  assertNoScopeLeakAtEof('description-latex-braces.mfront');
+});
+
+test('every @Description block shape opens and closes cleanly', () => {
+  assertAllDirectivesHighlighted('description-block-shapes.mfront');
+  assertNoScopeLeakAtEof('description-block-shapes.mfront');
+});
+
+test('@Description with no block yet does not swallow the directives below', () => {
+  assertAllDirectivesHighlighted('description-without-block.mfront');
+});
+
+// --- real-world corpus -----------------------------------------------------
+
+// Fixtures under test/fixtures/corpus/ are unmodified files from tfel's own
+// test suite, picked so that between them they use every @keyword the corpus
+// contains. They are the regression net for the whole grammar, not just for
+// one bug: a keyword missing from the list, or any new scope leak, shows up
+// here first.
+test('every directive in the real-world corpus stays highlighted', () => {
+  const files = listCorpus();
+  assert.ok(files.length > 0, 'corpus is empty');
+  for (const f of files) assertAllDirectivesHighlighted(path.join('corpus', f));
+});
+
+test('no real-world corpus file leaks a scope past EOF', () => {
+  for (const f of listCorpus()) assertNoScopeLeakAtEof(path.join('corpus', f));
+});
+
+// --- keyword list integrity ------------------------------------------------
+
+test('keyword alternatives are ordered so prefixes cannot shadow longer names', () => {
+  // TextMate alternation is leftmost-first, not longest-match. If
+  // '@TangentOperator' were listed before '@TangentOperatorBlocks', the latter
+  // could never match and would highlight only its prefix. tools/update-keywords.js
+  // emits the list longest-first; this guards hand edits.
+  const grammar = JSON.parse(
+    fs.readFileSync(path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'), 'utf8')
+  );
+  const kws = grammar.repository.keywords.match
+    .replace(/^@\(/, '').replace(/\)\\b$/, '').split('|');
+  const shadowed = [];
+  for (let i = 0; i < kws.length; i++) {
+    for (let j = i + 1; j < kws.length; j++) {
+      if (kws[j].startsWith(kws[i])) shadowed.push(`@${kws[j]} is shadowed by @${kws[i]}`);
+    }
+  }
+  assert.deepStrictEqual(shadowed, [], 'a longer keyword is listed after one of its prefixes');
 });

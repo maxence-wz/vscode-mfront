@@ -1,5 +1,13 @@
+# Development-only files. Everything not listed here ships in the .vsix.
+# NOTE: this is the single packaging strategy for this extension - vsce
+# refuses to run when a "files" allowlist in package.json is present too.
+.github/**
 .vscode/**
 .vscode-test/**
+test/**
+tools/**
+node_modules/**
+.gitattributes
 .gitignore
+package-lock.json
 vsc-extension-quickstart.md
-LICENSE

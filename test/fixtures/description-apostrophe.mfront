@@ -1,0 +1,15 @@
+// An apostrophe in ordinary prose opens string.quoted.single.cpp in the
+// embedded C++ grammar. It never closes, so it swallows the block's own '};'
+// and every directive below it. The keyword injection cannot fix this: its
+// selector excludes -string by design.
+@DSL Implicit;
+@Behaviour DescriptionApostrophe;
+
+@Description
+{
+  This model describes the material's viscoplastic behaviour.
+};
+
+@MaterialProperty real k;
+@Epsilon 1.e-14;
+@AuxiliaryStateVariable real dummy;
