@@ -35,6 +35,26 @@ Contributions are welcome! To suggest improvements:
    ```
 3. Make your changes and submit a **Pull Request**
 
+### 🧪 Tests
+
+```sh
+npm install
+npm test
+```
+
+The tests tokenize the fixtures in `test/fixtures/` with the same engine VS
+Code uses (`vscode-textmate` + `vscode-oniguruma`) and assert that every
+`@keyword` keeps its `keyword.control.mfront` scope.
+
+Because this grammar embeds `source.cpp`, the interesting failures are
+interactions with the real C++ grammar, so the tests load the actual
+`cpp.tmLanguage.json` from a VS Code build (downloaded and cached by
+`@vscode/test-electron` on first run). To run offline, point at a local copy:
+
+```sh
+CPP_TMLANGUAGE=".../resources/app/extensions/cpp/syntaxes/cpp.tmLanguage.json" npm test
+```
+
 ## 📜 License
 This extension is released under the **MIT License**.
 

@@ -1,0 +1,20 @@
+// Regression fixture for the OTHER direction: the injection added in PR #1
+// uses `injectionSelector: "L:source.mfront -comment -string"`. The `L:`
+// prefix is what lets the keyword rules reach into nested scopes, but
+// without `-comment -string` the injection also reaches inside comments and
+// string literals, re-highlighting keywords that are not live code.
+//
+// Commented-out keywords are common in real .mfront files (toggling
+// @UseQt, @Profiling, etc.), so this must stay excluded.
+
+@DSL Implicit;
+@Behaviour KeywordsInComments;
+
+// @UseQt true;
+// @Profiling true;
+
+/* @Integrator is mentioned in a block comment and must not be highlighted */
+
+@Parameter real theta = 1.0;
+
+@Epsilon 1.e-14;
