@@ -300,3 +300,53 @@ test('both @Description braces are scoped as string so neither looks unmatched',
     }
   }
 });
+
+// --- bounds intervals ------------------------------------------------------
+
+test('a valid bounds interval is not rendered as a bracket error', () => {
+  // '[0:*[' is correct MFront, but its brackets are unbalanced. Scoped as plain
+  // punctuation they would be seen as unmatched openers and coloured red, as if
+  // the line were a syntax error. VS Code ignores brackets inside a string
+  // token, so the bracket characters must carry a string scope.
+  const lines = fs.readFileSync(path.join(FIXTURES, 'bounds-valid-and-invalid.mfront'), 'utf8')
+    .split(/\r?\n/);
+  let ruleStack = vsctm.INITIAL;
+  let checked = 0;
+  for (const line of lines) {
+    const { tokens, ruleStack: next } = grammar.tokenizeLine(line, ruleStack);
+    ruleStack = next;
+    if (!/^\s*@(Physical)?Bounds\b/.test(line)) continue;
+    for (const t of tokens) {
+      const text = line.substring(t.startIndex, t.endIndex);
+      if (text !== '[' && text !== ']') continue;
+      checked++;
+      assert.ok(
+        t.scopes.some((s) => s.startsWith('string.')),
+        `${line.trim()}: bracket ${text} is not string-scoped -> ${t.scopes.join(' ')}`
+      );
+    }
+    for (const t of tokens) {
+      assert.ok(
+        !t.scopes.some((s) => s.startsWith('invalid.')),
+        `${line.trim()}: a valid interval must not be flagged invalid`
+      );
+    }
+  }
+  assert.ok(checked >= 10, `expected to check several brackets, saw ${checked}`);
+});
+
+test('a malformed bounds interval is flagged and does not swallow what follows', () => {
+  const fixture = 'bounds-malformed.mfront';
+  const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
+  let ruleStack = vsctm.INITIAL;
+  let flagged = 0;
+  for (const line of lines) {
+    const { tokens, ruleStack: next } = grammar.tokenizeLine(line, ruleStack);
+    ruleStack = next;
+    if (!/^\s*@(Physical)?Bounds\b/.test(line)) continue;
+    if (tokens.some((t) => t.scopes.some((s) => s.startsWith('invalid.')))) flagged++;
+  }
+  assert.strictEqual(flagged, 3, 'every malformed interval should be flagged');
+  assertAllDirectivesHighlighted(fixture);
+  assertNoScopeLeakAtEof(fixture);
+});

@@ -10,6 +10,9 @@
       "include": "source.mfront#bounds-interval"
     },
     {
+      "include": "source.mfront#bounds-interval-invalid"
+    },
+    {
       "include": "source.mfront#keywords"
     }
   ]
