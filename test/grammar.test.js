@@ -277,3 +277,26 @@ test('keyword alternatives are ordered so prefixes cannot shadow longer names', 
   }
   assert.deepStrictEqual(shadowed, [], 'a longer keyword is listed after one of its prefixes');
 });
+
+test('both @Description braces are scoped as string so neither looks unmatched', () => {
+  // VS Code's bracket pair colorization ignores brackets that sit inside a
+  // string token. Scoping only the opening brace as string left the closing one
+  // looking like an unmatched bracket, which themes render in red.
+  for (const fixture of ['description-apostrophe.mfront', 'description-block-shapes.mfront']) {
+    const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
+    let ruleStack = vsctm.INITIAL;
+    for (const line of lines) {
+      const { tokens, ruleStack: next } = grammar.tokenizeLine(line, ruleStack);
+      ruleStack = next;
+      for (const t of tokens) {
+        const scopes = t.scopes.join(' ');
+        if (!/punctuation\.section\.block\.(begin|end)\.mfront/.test(scopes)) continue;
+        assert.ok(
+          t.scopes.some((s) => s.startsWith('string.')),
+          `${fixture}: ${JSON.stringify(line.substring(t.startIndex, t.endIndex))} ` +
+          `is a @Description brace but is not scoped as a string -> ${scopes}`
+        );
+      }
+    }
+  }
+});

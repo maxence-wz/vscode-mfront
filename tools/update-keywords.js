@@ -3,9 +3,8 @@
  * Regenerates the @keyword list in syntaxes/mfront.tmLanguage.json from MFront
  * itself, which is the only authoritative source.
  *
- *   node tools/update-keywords.js            # merge: add what's new, keep the rest
- *   node tools/update-keywords.js --prune    # also drop keywords MFront no longer reports
- *   node tools/update-keywords.js --check    # report only, exit 1 if out of date (CI)
+ *   node tools/update-keywords.js            # add what's new
+ *   node tools/update-keywords.js --check    # report only, exit 1 if out of date
  *
  * How the list is obtained (see the TFEL FAQ, "Keywords available"):
  *
@@ -16,12 +15,14 @@
  * exists in the generic-behaviour DSLs while @Theta only exists in the implicit
  * ones.
  *
- * MERGE IS THE DEFAULT ON PURPOSE. Interface-specific keywords
- * (@AbaqusFiniteStrainStrategy, @UMATUseTimeSubStepping, @AsterSaveTangentOperator,
- * ...) are contributed by an interface rather than by a DSL, so they may not show
- * up in any --help-keywords-list output even though they are perfectly valid in a
- * .mfront file. Pruning would silently delete them. Use --prune only after
- * checking the "no longer reported" list it prints.
+ * THIS SCRIPT ONLY EVER ADDS. There is no removal mode, for two reasons:
+ * MFront keeps deprecated keywords working for backward compatibility, so a
+ * keyword dropping out of the listing does not mean files stop using it; and
+ * interface-specific keywords (@AbaqusFiniteStrainStrategy, @UMATUseTimeSubStepping,
+ * @AsterSaveTangentOperator, ...) are contributed by an interface rather than by a
+ * DSL, so they may never appear in any --help-keywords-list output even though they
+ * are perfectly valid in a .mfront file. Removing either kind would silently break
+ * highlighting on real files.
  */
 'use strict';
 
@@ -33,7 +34,6 @@ const GRAMMAR = path.join(__dirname, '..', 'syntaxes', 'mfront.tmLanguage.json')
 const MFRONT = process.env.MFRONT || 'mfront';
 
 const argv = process.argv.slice(2);
-const PRUNE = argv.includes('--prune');
 const CHECK = argv.includes('--check');
 
 function mfront(...args) {
@@ -96,13 +96,13 @@ function main() {
   if (added.length) console.log(`\nnew (${added.length}):\n  ${added.join('\n  ')}`);
   if (unreported.length) {
     console.log(
-      `\nin the grammar but not reported by mfront (${unreported.length}) --\n` +
-      `expected for interface-specific keywords; ${PRUNE ? 'REMOVING (--prune)' : 'keeping'}:\n` +
-      `  ${unreported.join('\n  ')}`
+      `\nin the grammar but not reported by mfront (${unreported.length}) -- kept.\n` +
+      `Expected: deprecated keywords stay valid, and interface-specific ones are not\n` +
+      `listed by any DSL. Nothing is ever removed automatically.`
     );
   }
 
-  const final = PRUNE ? [...reported] : [...new Set([...before, ...reported])];
+  const final = [...new Set([...before, ...reported])];
   const match = '@(' + order(final).join('|') + ')\\b';
 
   if (match === grammar.repository.keywords.match) {
