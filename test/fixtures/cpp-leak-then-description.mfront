@@ -1,0 +1,20 @@
+// Two problems compounding: a C++ scope leak, and then an @Description whose
+// prose would itself leak. The root rules cannot help - we are already nested
+// inside the leaked scope - so recovery depends on the injection carrying
+// #description-block, not just #keywords. Without it the apostrophe below opens
+// a string that runs to EOF.
+@DSL Implicit;
+@Behaviour CppLeakThenDescription;
+
+@Integrator
+{
+  const auto v = a[0 ;
+}
+
+@Description
+{
+  The material's response.
+};
+
+@Epsilon 1.e-14;
+@AuxiliaryStateVariable real dummy;

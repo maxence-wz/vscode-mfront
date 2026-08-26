@@ -59,8 +59,8 @@
     "vscode-extension"
   ],
   "scripts": {
-    "package": "vsce package",
-    "publish": "vsce publish",
+    "package": "npx --yes @vscode/vsce package",
+    "publish": "npx --yes @vscode/vsce publish",
     "test": "node --test",
     "keywords": "node tools/update-keywords.js"
   },

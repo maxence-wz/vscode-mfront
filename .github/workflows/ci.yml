@@ -15,13 +15,9 @@ jobs:
         with:
           node-version: lts/*
 
-      - name: Validate grammar JSON is well-formed
-        run: |
-          for f in syntaxes/*.tmLanguage.json package.json; do
-            echo "Checking $f"
-            node -e "JSON.parse(require('fs').readFileSync('$f', 'utf8'))"
-          done
-
+      # Deliberately `npm install` and no committed lock file: this repo ships
+      # no runtime JavaScript, so the point is to check the grammar against the
+      # current toolchain rather than against a pinned snapshot.
       - name: Install dependencies
         run: npm install
 

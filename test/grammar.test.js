@@ -350,3 +350,18 @@ test('a malformed bounds interval is flagged and does not swallow what follows',
   assertAllDirectivesHighlighted(fixture);
   assertNoScopeLeakAtEof(fixture);
 });
+
+test('the injection keeps directives highlighted past a C++ scope leak', () => {
+  // Guards the injection itself, which the root rules would otherwise make look
+  // redundant: @Description and @Bounds are handled before source.cpp ever sees
+  // them, so nothing else in this suite depends on the injection being wired up.
+  // A stray '[' in a C++ body still leaks, and only the injection recovers it.
+  assertAllDirectivesHighlighted('cpp-unclosed-bracket.mfront');
+});
+
+test('the injection recovers a @Description that is already inside a leaked scope', () => {
+  // Pins the injection's shape, not just its presence: it must carry
+  // #description-block, and with 'L:' precedence, or the @Description prose
+  // below an existing leak is handed to source.cpp and leaks again.
+  assertAllDirectivesHighlighted('cpp-leak-then-description.mfront');
+});
