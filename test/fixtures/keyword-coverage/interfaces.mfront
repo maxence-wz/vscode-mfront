@@ -1,0 +1,40 @@
+// Synthetic fixture: solver-interface keywords.
+// Written by hand for this repository; not derived from any external source.
+@DSL Implicit;
+@Behaviour SyntheticInterfaces;
+@Author Extension test suite;
+@Date 01/01/2026;
+
+@Description
+{
+  Collects the interface-specific directives in one place. Interfaces are
+  normally selected one at a time; this file only has to tokenize.
+}
+
+@Interface abaqus;
+
+@AbaqusFiniteStrainStrategy[abaqus] FiniteRotationSmallStrain;
+@AbaqusOrthotropyManagementPolicy[abaqus] MFront;
+@AbaqusGenerateMTestFileOnFailure[abaqus] true;
+@AnsysFiniteStrainStrategy[ansys] FiniteRotationSmallStrain;
+@CalculiXFiniteStrainStrategy[calculix] FiniteRotationSmallStrain;
+@CastemFiniteStrainStrategy[castem] FiniteRotationSmallStrain;
+@CastemGenerateMTestFileOnFailure[castem] true;
+@UMATFiniteStrainStrategy[umat] FiniteRotationSmallStrain;
+@UMATFiniteStrainStrategies[umat] {FiniteRotationSmallStrain};
+@UMATUseTimeSubStepping[umat] true;
+@UMATMaximumSubStepping[umat] 10;
+@CyranoUseTimeSubStepping[cyrano] true;
+@CyranoMaximumSubStepping[cyrano] 5;
+@CyranoGenerateMTestFileOnFailure[cyrano] true;
+@AsterFiniteStrainFormulation[aster] SimoMiehe;
+@AsterSaveTangentOperator[aster] true;
+@AsterGenerateMTestFileOnFailure[aster] true;
+@AsterCompareToNumericalTangentOperator[aster] true;
+@AsterStrainPerturbationValue[aster] 1.e-8;
+@AsterTangentOperatorComparisonCriterium[aster] 1.e-6;
+
+@Epsilon 1.e-14;
+@Integrator{
+  feel += 0;
+}

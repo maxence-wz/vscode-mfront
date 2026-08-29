@@ -1,0 +1,24 @@
+// Synthetic fixture: single crystal keywords.
+// Written by hand for this repository; not derived from any external source.
+@DSL ImplicitFiniteStrain;
+@Behaviour SyntheticSingleCrystal;
+@Author Extension test suite;
+@Date 01/01/2026;
+
+@Description
+{
+  A single crystal skeleton. The slip system family below is a standard
+  cubic one; the interaction matrix values are arbitrary.
+}
+
+@CrystalStructure Cubic;
+@SlidingSystem <1, -1, 0> {1, 1, 1};
+@InteractionMatrix {1.0, 1.0, 0.6, 1.8, 1.6, 12.3, 1.6};
+
+@MaterialProperty real tau0;
+@StateVariable real g[12];
+@Integrator{
+  for (unsigned short i = 0; i != 12; ++i) {
+    fg[i] -= dt * tau0;
+  }
+}

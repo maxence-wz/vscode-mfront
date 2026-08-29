@@ -1,0 +1,34 @@
+// Synthetic fixture: Model DSL and behaviour-variable keywords.
+// Written by hand for this repository; not derived from any external source.
+@DSL Model;
+@Model SyntheticSwellingModel;
+@Author Extension test suite;
+@Date 01/01/2026;
+
+@Description
+{
+  A made-up swelling model. The numbers are arbitrary.
+}
+
+@Output s;
+s.setDefaultInitialValue(0.);
+@Input burnup;
+@Parameter real rate = 1.e-3;
+@LocalParameter real scale;
+@Constant threshold = 0.5;
+@Data {"kind" : "synthetic"};
+
+@BehaviourVariable b {
+  file: "SyntheticViscoPlasticity.mfront",
+  variables_suffix: "1"
+};
+@BehaviourVariableFactory bf {
+  file: "SyntheticViscoPlasticity.mfront"
+};
+@BindDomainToParameter scale;
+@AuxiliaryModel "SyntheticHelperModel.mfront";
+
+@Derivative
+{
+  ds = rate * burnup * dt;
+}

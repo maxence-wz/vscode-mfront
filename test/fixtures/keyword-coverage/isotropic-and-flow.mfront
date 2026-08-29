@@ -1,0 +1,23 @@
+// Synthetic fixture: IsotropicMisesCreep / MultipleIsotropicMisesFlows DSLs.
+// Written by hand for this repository; not derived from any external source.
+@DSL MultipleIsotropicMisesFlows;
+@Behaviour SyntheticFlows;
+@Author Extension test suite;
+@Date 01/01/2026;
+
+@Description
+{
+  Two competing flows, written only to use the flow-related keywords.
+}
+
+@Coef stress young_modulus;
+@MaterialProperty real K;
+@Parameter real n0 = 3.0;
+
+@FlowRule Creep {
+  f = K * pow(seq, n0);
+  df_dseq = K * n0 * pow(seq, n0 - 1);
+}
+
+@IsotropicHardeningRule Linear {"R0" : 100e6, "H" : 1e9};
+@IsotropicHardeningRules {"Linear" : {"R0" : 100e6}};

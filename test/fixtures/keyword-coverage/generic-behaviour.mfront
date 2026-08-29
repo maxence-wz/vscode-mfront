@@ -1,0 +1,37 @@
+// Synthetic fixture: DefaultGenericBehaviour DSL.
+// Written by hand for this repository; not derived from any external source.
+@DSL DefaultGenericBehaviour;
+@Behaviour SyntheticGeneric;
+@Author Extension test suite;
+@Date 01/01/2026;
+
+@Description
+{
+  A generic behaviour written to exercise the gradient / flux keywords.
+}
+
+@Gradient StrainStensor eto;
+eto.setGlossaryName("Strain");
+@Flux StressStensor sig;
+sig.setGlossaryName("Stress");
+@ThermodynamicForce StressStensor sig2;
+@LoadingVariable real load;
+
+@TangentOperatorBlocks {dsig_ddeto};
+@AdditionalTangentOperatorBlock dsig_ddT;
+
+@MaterialProperty stress young;
+@LocalVariable stress lambda;
+
+@ComputeThermodynamicForces{
+  sig = lambda * trace(eto) * Stensor::Id() * 1.0;
+}
+@ComputeFinalThermodynamicForces{
+  sig = lambda * trace(eto) * Stensor::Id() * 1.0;
+}
+@Integrator{
+  static_cast<void>(lambda);
+}
+@TangentOperator{
+  Dt = lambda * Stensor4::IxI();
+}

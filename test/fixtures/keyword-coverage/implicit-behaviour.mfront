@@ -1,0 +1,114 @@
+// Synthetic fixture: Implicit DSL, elasto-viscoplastic skeleton.
+// Written by hand for this repository; not derived from any external source.
+@DSL Implicit;
+@Behaviour SyntheticViscoPlasticity;
+@Author Extension test suite;
+@Date 01/01/2026;
+
+@Description
+{
+  A deliberately simple viscoplastic behaviour. Its only purpose is to use
+  as many MFront keywords as possible in one file.
+}
+
+@ModellingHypothesis Tridimensional;
+@ModellingHypotheses {".+"};
+@Algorithm NewtonRaphson;
+@Theta 1;
+@Epsilon 1.e-14;
+@IterMax 100;
+@UseQt false;
+@Profiling true;
+
+@OrthotropicBehaviour;
+@IsotropicElasticBehaviour;
+@RequireStiffnessTensor;
+@ComputeStiffnessTensor{200e9, 0.3};
+@ElasticMaterialProperties {200e9, 0.3};
+@ComputeThermalExpansion 1.e-5;
+@StrainMeasure Hencky;
+@Brick StandardElasticity;
+@HillTensor H {0.5, 0.5, 0.5, 1.5, 1.5, 1.5};
+
+@MaterialProperty stress young;
+@Parameter real A = 1.e-8;
+@Parameter real m = 4.0;
+@LocalVariable stress lambda;
+@LocalVar stress mu;
+@StateVariable real p;
+@StateVar real q;
+@IntegrationVariable strain evp;
+@AuxiliaryStateVariable real damage;
+@ExternalStateVariable real irradiation;
+@ExternalStateVar real flux_level;
+
+@Swelling 1.e-3;
+@AxialGrowth 1.e-4;
+@Relocation 1.e-5;
+@ComputeStressFreeExpansion{
+  dl0_l0 += 1.e-6;
+  dl1_l1 += 1.e-6;
+}
+
+@InitLocalVariables{
+  lambda = young;
+}
+@InitLocalVars{
+  mu = young / 2;
+}
+@InitializeLocalVariables{
+  mu = young / 2;
+}
+
+@Predictor{
+  // no prediction
+}
+@InitJacobian{
+  // nothing
+}
+@ComputeStress{
+  sig = 2 * mu * eel;
+  sig += lambda * trace(eel) * Stensor::Id();
+}
+@Integrator{
+  feel += dp * Stensor::Id();
+  fp -= dt * A * pow(sig(0), m);
+}
+@ComputeFinalStress{
+  sig = 2 * mu * eel;
+  sig += lambda * trace(eel) * Stensor::Id();
+}
+@TangentOperator{
+  Dt = 2 * mu * Stensor4::Id();
+  Dt += lambda * Stensor4::IxI();
+}
+@PredictionOperator{
+  Dt = 2 * mu * Stensor4::Id();
+  Dt += lambda * Stensor4::IxI();
+}
+@IsTangentOperatorSymmetric true;
+@ProvidesSymmetricTangentOperator;
+@ProvidesTangentOperator;
+
+@UpdateAuxiliaryStateVariables{
+  damage += dp;
+}
+@UpdateAuxiliaryStateVars{
+  damage += 0;
+}
+@InternalEnergy{
+  Psi_s = 0.5 * (sig | eel);
+}
+@DissipatedEnergy{
+  Psi_d += dp * sigmaeq(sig);
+}
+@AdditionalConvergenceChecks{
+  converged = converged && (dp >= 0);
+}
+@CompareToNumericalJacobian true;
+@NumericallyComputedJacobianBlocks {dfeel_ddeel};
+@PerturbationValueForNumericalJacobianComputation 1.e-8;
+@JacobianComparisonCriterium 1.e-6;
+@MaximumIncrementValuePerIteration 1.e-4;
+@MaximalTimeStepScalingFactor 1.2;
+@APosterioriTimeStepScalingFactor 0.9;
