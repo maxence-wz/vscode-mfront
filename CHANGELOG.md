@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-29
+
 ### 🐛 Bug Fixes
 - `@Description` text is now treated as prose instead of being handed to the
   embedded C++ grammar. Ordinary writing used to break highlighting for the
