@@ -47,12 +47,12 @@ Code uses (`vscode-textmate` + `vscode-oniguruma`) and assert that every
 `@keyword` keeps its `keyword.control.mfront` scope.
 
 Because this grammar embeds `source.cpp`, the interesting failures are
-interactions with the real C++ grammar, so the tests load the actual
-`cpp.tmLanguage.json` from a VS Code build (downloaded and cached by
-`@vscode/test-electron` on first run). To run offline, point at a local copy:
+interactions with the real C++ grammar, so the tests fetch the current
+`cpp.tmLanguage.json` from the VS Code repository each run. To run offline, or
+against one specific version, point at a local copy:
 
 ```sh
-CPP_TMLANGUAGE=".../resources/app/extensions/cpp/syntaxes/cpp.tmLanguage.json" npm test
+CPP_TMLANGUAGE="/path/to/cpp.tmLanguage.json" npm test
 ```
 
 ## 📜 License

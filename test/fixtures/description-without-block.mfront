@@ -1,0 +1,10 @@
+// Transient state while the block is still being typed. Must degrade to
+// plain highlighting, never swallow the directives below.
+@DSL Implicit;
+@Description
+@Parameter real a = 1.0;
+@Integrator
+{
+  feel += 1;
+}
+@Epsilon 1.e-14;

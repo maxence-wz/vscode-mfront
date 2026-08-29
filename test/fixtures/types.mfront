@@ -1,0 +1,34 @@
+// The type aliases MFront predefines. Before they were declared in the grammar
+// they fell through to source.cpp and were tokenized as unknown identifiers, so
+// the domain vocabulary a mechanics file is mostly made of got no highlighting.
+@DSL Implicit;
+@Behaviour TypesAndVariables;
+
+@MaterialProperty stress young;
+@MaterialProperty real nu;
+@MaterialProperty temperature Tref;
+@MaterialProperty thermalexpansion alpha;
+@MaterialProperty massdensity rho;
+@MaterialProperty thermalconductivity kappa;
+@StateVariable StrainStensor evp;
+@StateVariable strain p;
+@AuxiliaryStateVariable StressStensor sig0;
+@LocalVariable StiffnessTensor Dloc;
+@LocalVariable Stensor4 M;
+@LocalVariable DeformationGradientTensor Fl;
+@LocalVariable stensor<N, stress> sloc;
+@LocalVariable tvector<N, real> v;
+@LocalVariable derivative_type<stress, temperature> dsig_dT;
+
+@Integrator{
+  const auto e = eto + deto;
+  static_cast<void>(e);
+  static_cast<void>(theta);
+  static_cast<void>(dt);
+  static_cast<void>(T);
+  feel += deel;
+}
+
+@TangentOperator{
+  Dt = Dloc;
+}

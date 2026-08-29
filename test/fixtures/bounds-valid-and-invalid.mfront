@@ -1,0 +1,18 @@
+// A correct interval must not look like an error, and an incorrect one must.
+// MFront marks an open endpoint with an inverted bracket and '*' for infinity,
+// so '[0:*[' is valid despite its unbalanced brackets.
+@DSL Implicit;
+@Behaviour BoundsValidAndInvalid;
+
+@MaterialProperty real p;
+@PhysicalBounds p in [0:*[;
+@Bounds p in [0:1];
+
+@MaterialProperty real q;
+@PhysicalBounds q in [0.:*[;
+@Bounds q in [293.15:973.15];
+
+@MaterialProperty real r;
+@PhysicalBounds r in [-1.e-3:1.e-3];
+
+@Epsilon 1.e-14;

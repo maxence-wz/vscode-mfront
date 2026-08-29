@@ -1,0 +1,17 @@
+@Parser   MaterialLaw;
+@Law      ThermalExpansionCoefficientTest;
+@Author   Thomas Helfer;
+@Date     06/03/2014;
+
+// output of law
+@Output a ;
+
+// required if used by a behaviour
+@Constant ReferenceTemperature =  293.15;
+
+@Function{
+  // remove compiler warnings
+  static_cast<void>(ReferenceTemperature);
+  a = 2.e-5;
+} // end of Function
+

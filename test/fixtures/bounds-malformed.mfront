@@ -1,0 +1,12 @@
+// Malformed intervals. Each must be flagged, and must not swallow what follows.
+@DSL Implicit;
+@Behaviour BoundsMalformed;
+
+@MaterialProperty real x;
+@Bounds x in [0:1;
+@MaterialProperty real y;
+@Bounds y in 0:1];
+@MaterialProperty real z;
+@PhysicalBounds z in [abc:*[;
+
+@Epsilon 1.e-14;

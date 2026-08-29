@@ -1,0 +1,51 @@
+// Synthetic fixture: MaterialProperty DSL.
+// Written by hand for this repository; not derived from any external source.
+@Parser MaterialProperty;
+@Law SyntheticConductivity;
+@Material SyntheticAlloy;
+@Author Extension test suite;
+@Date 01/01/2026;
+@UnitSystem SI;
+
+@Description
+{
+  Conductivity of a made-up alloy, used only to exercise the grammar.
+  The expression below has no physical meaning, and the material's name
+  is deliberately fictitious.
+}
+
+@Output k;
+k.setGlossaryName("ThermalConductivity");
+
+@Input T;
+T.setGlossaryName("Temperature");
+
+@PhysicalBounds T in [0:*[;
+@Bounds T in [293.15:873.15];
+
+@Constant a = 1.2;
+@StaticVar real b = 3.4e-3;
+@StaticVariable real c = 5.6e-6;
+@IntegerConstant n = 2;
+@Parameter real offset = 0.0;
+
+@UseQt true;
+@Includes{
+#include<cmath>
+}
+@Members{
+  real square(const real x) const { return x * x; }
+}
+@Import "SyntheticHelper.mfront";
+@MaterialLaw "SyntheticHelper.mfront";
+@Library SyntheticLib;
+@Link "-lm";
+@Sources{
+  // nothing to compile here
+}
+@Interface castem;
+
+@Function
+{
+  k = a + b * T + c * square(T) + offset;
+}

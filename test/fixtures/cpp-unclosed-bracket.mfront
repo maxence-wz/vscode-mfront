@@ -1,0 +1,17 @@
+// A typo in the C++ body - here a '[' that is never closed - opens a
+// meta.bracket.square scope that source.cpp keeps open to EOF. This is NOT a
+// case the root rules can fix: the grammar's own patterns only apply at the
+// document root, and by this point we are nested inside meta.block.cpp. Only
+// the 'L:' injection reaches in and keeps the directives below highlighted,
+// which is what stops one typo from un-highlighting the rest of the file while
+// it is being fixed.
+@DSL Implicit;
+@Behaviour CppUnclosedBracket;
+
+@Integrator
+{
+  const auto v = a[0 ;
+}
+
+@Epsilon 1.e-14;
+@AuxiliaryStateVariable real dummy;

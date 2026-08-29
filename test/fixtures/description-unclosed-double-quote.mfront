@@ -1,0 +1,12 @@
+// Same failure mode as the apostrophe, via string.quoted.double.cpp.
+@DSL Implicit;
+@Behaviour DescriptionUnclosedQuote;
+
+@Description
+{
+  The so-called "damage variable is defined per component.
+  A second paragraph with an apostrophe: the matrix' stiffness.
+};
+
+@MaterialProperty real k;
+@Epsilon 1.e-14;

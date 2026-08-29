@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-29
+
+### 🐛 Bug Fixes
+- `@Description` text is now treated as prose instead of being handed to the
+  embedded C++ grammar. Ordinary writing used to break highlighting for the
+  rest of the file:
+  - an apostrophe or a quote ("the material's behaviour") opened a string that
+    never closed;
+  - LaTeX with unbalanced braces (`\left\{ ... \right.`) ended the block in the
+    wrong place.
+- A malformed bounds interval, e.g. `@Bounds x in [0:1;`, is now reported as an
+  error instead of silently breaking the rest of the file.
+
+### 🚀 New Features
+- MFront type aliases are highlighted: the scalar quantities (`real`, `stress`,
+  `strain`, `temperature`, `thermalexpansion`, `massdensity`,
+  `thermalconductivity`, ...), the tensorial types (`StrainStensor`,
+  `StressStensor`, `StiffnessTensor`, `Stensor4`, ...), the types imported from
+  `TFEL/Math` (`stensor`, `tensor`, `st2tost2`, `tvector`, ...) and the generic
+  aliases (`derivative_type`, `quantity`, ...).
+- 38 keywords that were missing are now recognised, notably the
+  generic-behaviour ones (`@Gradient`, `@Flux`, `@ThermodynamicForce`,
+  `@TangentOperatorBlocks`) and the solver-interface ones (`@Abaqus*`,
+  `@Aster*`, `@Castem*`, `@Cyrano*`, `@UMAT*`, `@CalculiX*`, `@Ansys*`).
+
+### 🔧 Internal
+- Test fixtures now cover every keyword the grammar knows about.
+- The tests fetch the C++ grammar directly instead of downloading a full VS
+  Code build, so `npm test` runs in seconds.
+- Added a GitHub Actions workflow running the tests and packaging the
+  extension on every branch.
+
 ## [1.0.1] - 2026-08-29
 
 ### 🐛 Bug Fixes
