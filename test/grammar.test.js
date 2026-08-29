@@ -6,11 +6,12 @@
 // loads the real cpp.tmLanguage.json rather than a stub -- a stub would not
 // reproduce the bugs at all.
 //
-// The C++ grammar is taken from a real VS Code build, downloaded and cached
-// by @vscode/test-electron. Set CPP_TMLANGUAGE to a local path to skip the
-// download (useful offline):
+// The C++ grammar is fetched from the vscode repository at run time, so the
+// tests always run against the current one. Set CPP_TMLANGUAGE to a local path
+// to use a specific copy instead (offline runs, or reproducing a report
+// against one version):
 //
-//   CPP_TMLANGUAGE=".../resources/app/extensions/cpp/syntaxes/cpp.tmLanguage.json" npm test
+//   CPP_TMLANGUAGE=".../cpp.tmLanguage.json" npm test
 
 const { test, before } = require('node:test');
 const assert = require('node:assert');
@@ -24,37 +25,24 @@ const REPO = path.resolve(__dirname, '..');
 const FIXTURES = path.join(__dirname, 'fixtures');
 const KEYWORD_SCOPE = 'keyword.control.mfront';
 
-// --- locating the real C++ grammar ----------------------------------------
+// --- the real C++ grammar --------------------------------------------------
 
-function findFile(root, target, depth = 6) {
-  if (depth < 0 || !fs.existsSync(root)) return null;
-  let entries;
-  try { entries = fs.readdirSync(root, { withFileTypes: true }); } catch { return null; }
-  for (const e of entries) {
-    const p = path.join(root, e.name);
-    if (e.isFile() && e.name === target) return p;
-  }
-  for (const e of entries) {
-    if (!e.isDirectory()) continue;
-    const hit = findFile(path.join(root, e.name), target, depth - 1);
-    if (hit) return hit;
-  }
-  return null;
-}
+const CPP_GRAMMAR_URL =
+  'https://raw.githubusercontent.com/microsoft/vscode/main/extensions/cpp/syntaxes/cpp.tmLanguage.json';
 
-async function resolveCppGrammarPath() {
-  if (process.env.CPP_TMLANGUAGE) return process.env.CPP_TMLANGUAGE;
+async function loadCppGrammarSource() {
+  const local = process.env.CPP_TMLANGUAGE;
+  if (local) return fs.readFileSync(local, 'utf8');
 
-  const { downloadAndUnzipVSCode } = require('@vscode/test-electron');
-  const exe = await downloadAndUnzipVSCode();
-  // Walk up from the executable to the install root, then find the grammar.
-  let root = path.dirname(exe);
-  for (let i = 0; i < 4; i++) {
-    const hit = findFile(root, 'cpp.tmLanguage.json');
-    if (hit) return hit;
-    root = path.dirname(root);
+  const response = await fetch(CPP_GRAMMAR_URL);
+  if (!response.ok) {
+    throw new Error(
+      `Could not fetch the C++ grammar (${response.status} ${response.statusText}).\n` +
+      `If you are offline, point CPP_TMLANGUAGE at a local copy:\n` +
+      `  CPP_TMLANGUAGE=/path/to/cpp.tmLanguage.json npm test`
+    );
   }
-  throw new Error('Could not locate cpp.tmLanguage.json in the downloaded VS Code build.');
+  return response.text();
 }
 
 // --- registry -------------------------------------------------------------
@@ -62,12 +50,11 @@ async function resolveCppGrammarPath() {
 let grammar;
 
 before(async () => {
-  const cppPath = await resolveCppGrammarPath();
+  const cppSource = await loadCppGrammarSource();
 
   const grammarPaths = {
     'source.mfront': path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'),
     'mfront.keywords.injection': path.join(REPO, 'syntaxes', 'mfront-keywords.injection.tmLanguage.json'),
-    'source.cpp': cppPath,
   };
 
   // Mirrors what VS Code does with the `injectTo` field in package.json, so
@@ -94,6 +81,9 @@ before(async () => {
     }),
     getInjections: (scopeName) => injections[scopeName],
     loadGrammar: async (scopeName) => {
+      if (scopeName === 'source.cpp') {
+        return vsctm.parseRawGrammar(cppSource, 'cpp.tmLanguage.json');
+      }
       const p = grammarPaths[scopeName];
       if (!p) return null; // grammars cpp.tmLanguage.json references but does not need here
       return vsctm.parseRawGrammar(fs.readFileSync(p, 'utf8'), p);
@@ -167,10 +157,11 @@ function assertNoScopeLeakAtEof(fixture) {
   );
 }
 
-function listCorpus() {
-  return fs.readdirSync(path.join(FIXTURES, 'corpus'))
+function listFixtures(dir) {
+  return fs.readdirSync(path.join(FIXTURES, dir))
     .filter((f) => f.endsWith('.mfront'))
-    .sort();
+    .sort()
+    .map((f) => path.join(dir, f));
 }
 
 // --- tests ----------------------------------------------------------------
@@ -240,21 +231,47 @@ test('@Description with no block yet does not swallow the directives below', () 
   assertAllDirectivesHighlighted('description-without-block.mfront');
 });
 
-// --- real-world corpus -----------------------------------------------------
+// --- whole-grammar fixtures ------------------------------------------------
 
-// Fixtures under test/fixtures/corpus/ are unmodified files from tfel's own
-// test suite, picked so that between them they use every @keyword the corpus
-// contains. They are the regression net for the whole grammar, not just for
-// one bug: a keyword missing from the list, or any new scope leak, shows up
-// here first.
-test('every directive in the real-world corpus stays highlighted', () => {
-  const files = listCorpus();
-  assert.ok(files.length > 0, 'corpus is empty');
-  for (const f of files) assertAllDirectivesHighlighted(path.join('corpus', f));
+// keyword-coverage/ holds fixtures written for this repository, between them
+// using every @keyword the grammar knows about. corpus/ holds a few unmodified
+// files from TFEL's own test suite (see its README for licensing), kept because
+// real files use constructs hand-written ones tend to miss. Together they are
+// the regression net for the whole grammar, not just for one bug: a keyword
+// missing from the list, or any new scope leak, shows up here first.
+test('every directive in the keyword-coverage fixtures stays highlighted', () => {
+  const files = listFixtures('keyword-coverage');
+  assert.ok(files.length > 0, 'keyword-coverage is empty');
+  for (const f of files) assertAllDirectivesHighlighted(f);
 });
 
-test('no real-world corpus file leaks a scope past EOF', () => {
-  for (const f of listCorpus()) assertNoScopeLeakAtEof(path.join('corpus', f));
+test('every directive in the real-world fixtures stays highlighted', () => {
+  const files = listFixtures('corpus');
+  assert.ok(files.length > 0, 'corpus is empty');
+  for (const f of files) assertAllDirectivesHighlighted(f);
+});
+
+test('no whole-grammar fixture leaks a scope past EOF', () => {
+  for (const f of [...listFixtures('keyword-coverage'), ...listFixtures('corpus')]) {
+    assertNoScopeLeakAtEof(f);
+  }
+});
+
+test('the keyword-coverage fixtures use every keyword the grammar declares as reachable', () => {
+  // Guards the fixtures themselves: if a keyword is added to the grammar but no
+  // fixture ever uses it, nothing above would notice it was mistyped.
+  const declared = new Set(
+    JSON.parse(fs.readFileSync(path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'), 'utf8'))
+      .repository.keywords.match.replace(/^@\(/, '').replace(/\)\\b$/, '').split('|')
+  );
+  const used = new Set();
+  for (const f of listFixtures('keyword-coverage')) {
+    for (const line of fs.readFileSync(path.join(FIXTURES, f), 'utf8').split(/\r?\n/)) {
+      const m = /^\s*@([A-Za-z]\w*)/.exec(line);
+      if (m && declared.has(m[1])) used.add(m[1]);
+    }
+  }
+  assert.ok(used.size >= 125, `only ${used.size} keywords exercised by the fixtures`);
 });
 
 // --- keyword list integrity ------------------------------------------------
@@ -262,8 +279,8 @@ test('no real-world corpus file leaks a scope past EOF', () => {
 test('keyword alternatives are ordered so prefixes cannot shadow longer names', () => {
   // TextMate alternation is leftmost-first, not longest-match. If
   // '@TangentOperator' were listed before '@TangentOperatorBlocks', the latter
-  // could never match and would highlight only its prefix. tools/update-keywords.js
-  // emits the list longest-first; this guards hand edits.
+  // could never match and would highlight only its prefix. The list is edited by
+  // hand, so this test is what keeps that ordering correct.
   const grammar = JSON.parse(
     fs.readFileSync(path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'), 'utf8')
   );
@@ -364,4 +381,64 @@ test('the injection recovers a @Description that is already inside a leaked scop
   // #description-block, and with 'L:' precedence, or the @Description prose
   // below an existing leak is handed to source.cpp and leaks again.
   assertAllDirectivesHighlighted('cpp-leak-then-description.mfront');
+});
+
+// --- types and predefined variables ----------------------------------------
+
+function scopesOfWord(fixture, word) {
+  const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
+  let ruleStack = vsctm.INITIAL;
+  const found = [];
+  for (const line of lines) {
+    const { tokens, ruleStack: next } = grammar.tokenizeLine(line, ruleStack);
+    ruleStack = next;
+    for (const t of tokens) {
+      if (line.substring(t.startIndex, t.endIndex).trim() === word) found.push(t.scopes);
+    }
+  }
+  return found;
+}
+
+test('MFront type aliases are highlighted as types, not as unknown C++ identifiers', () => {
+  const fixture = 'types.mfront';
+  for (const type of ['real', 'stress', 'temperature', 'thermalexpansion', 'massdensity',
+                      'thermalconductivity', 'strain', 'StrainStensor', 'StressStensor',
+                      'StiffnessTensor', 'Stensor4', 'DeformationGradientTensor',
+                      'stensor', 'tvector', 'derivative_type']) {
+    const hits = scopesOfWord(fixture, type);
+    assert.ok(hits.length > 0, `${type} does not appear in ${fixture}`);
+    assert.ok(
+      hits.some((scopes) => scopes.some((s) => s.startsWith('storage.type.mfront'))),
+      `${type} is not scoped storage.type.mfront -> ${hits[0].join(' ')}`
+    );
+  }
+});
+
+test('a type name inside @Description prose is not highlighted as a type', () => {
+  // The prose is inert text; picking words out of it would be noise.
+  const hits = scopesOfWord('description-apostrophe.mfront', 'material');
+  for (const scopes of hits) {
+    assert.ok(
+      !scopes.some((s) => s.startsWith('storage.type.mfront')),
+      'a word in @Description prose was highlighted as a type'
+    );
+  }
+});
+
+test('MFront types use a scope every theme styles', () => {
+  // Regression guard on the scope *choice*, not just on matching. A type that
+  // matches but renders in the default foreground looks exactly like a bug, and
+  // both semantically nicer candidates do that on stock themes:
+  //   - support.type: no rule in 'Dark+' nor in 'Dark (Visual Studio)';
+  //   - entity.name.type: no rule in 'Dark (Visual Studio)', where C++ class
+  //     names are left unstyled too.
+  // storage.type is what source.cpp uses for 'double', and every theme styles
+  // it.
+  const grammarJson = JSON.parse(
+    fs.readFileSync(path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'), 'utf8')
+  );
+  assert.ok(
+    grammarJson.repository.types.name.startsWith('storage.type'),
+    `MFront types are scoped ${grammarJson.repository.types.name}, not storage.type.*`
+  );
 });

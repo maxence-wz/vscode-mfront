@@ -2,7 +2,8 @@
   "name": "vscode-mfront-syntax",
   "displayName": "MFront",
   "description": "Adds syntax highlighting for MFront files.",
-  "version": "1.0.0",
+  "license": "MIT",
+  "version": "1.0.1",
   "publisher": "maxence-wz",
   "engines": {
     "vscode": "^1.75.0"
@@ -61,11 +62,9 @@
   "scripts": {
     "package": "npx --yes @vscode/vsce package",
     "publish": "npx --yes @vscode/vsce publish",
-    "test": "node --test",
-    "keywords": "node tools/update-keywords.js"
+    "test": "node --test"
   },
   "devDependencies": {
-    "@vscode/test-electron": "^2.4.1",
     "vscode-oniguruma": "^2.0.1",
     "vscode-textmate": "^9.0.0"
   }

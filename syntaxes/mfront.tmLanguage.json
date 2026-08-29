@@ -18,6 +18,9 @@
       "include": "#keywords"
     },
     {
+      "include": "#types"
+    },
+    {
       "include": "source.cpp"
     }
   ],
@@ -83,7 +86,7 @@
           "name": "keyword.control.mfront"
         }
       },
-      "comment": "Full list of MFront '@Xxx' keywords, including the interface-specific ones (@Abaqus*, @Aster*, @Castem*, @Cyrano*, @UMAT*, @CalculiX*, @Ansys*) and the generic-behaviour ones (@Gradient, @Flux, @ThermodynamicForce, @TangentOperatorBlock(s)). Alternatives are ordered longest-first: TextMate alternation is leftmost-first, not longest-match, so '@TangentOperator' listed before '@TangentOperatorBlocks' would match only the shorter prefix and leave 'Blocks' unhighlighted. Regenerate with `mfront --help-keywords-list` rather than by hand."
+      "comment": "Full list of MFront '@Xxx' keywords, including the interface-specific ones (@Abaqus*, @Aster*, @Castem*, @Cyrano*, @UMAT*, @CalculiX*, @Ansys*) and the generic-behaviour ones (@Gradient, @Flux, @ThermodynamicForce, @TangentOperatorBlock(s)). Alternatives are ordered longest-first: TextMate alternation is leftmost-first, not longest-match, so '@TangentOperator' listed before '@TangentOperatorBlocks' would match only the shorter prefix and leave 'Blocks' unhighlighted. To add keywords, list them with `mfront --list-dsl` then `mfront --help-keywords-list=<DSL>`, and edit this list by hand keeping the longest-first order."
     },
     "bounds-interval-invalid": {
       "comment": "Anything shaped like a bounds declaration that #bounds-interval did not accept: a missing bracket, a non-numeric endpoint, a missing ':' and so on. Scoped invalid.illegal so themes render it as an error, which is the point - a correct interval must NOT look like an error, and an incorrect one must. It is still a single-line 'match', so a malformed line cannot leak a bracket scope into the rest of the file either. Must come after #bounds-interval and before #keywords.",
@@ -96,6 +99,11 @@
           "name": "invalid.illegal.bounds.mfront"
         }
       }
+    },
+    "types": {
+      "comment": "Type aliases MFront predefines for every behaviour (see the 'Predefined aliases in MFront' page of the TFEL documentation): the scalar quantities, the tensorial types imported from TFEL/Math, and the generic aliases. Without this rule they fall through to source.cpp, which has no reason to know them and tokenizes them as unknown identifiers - so the domain vocabulary a mechanics file is mostly made of gets no highlighting at all. Scoped storage.type, which is what source.cpp uses for 'double' and 'auto'. That is the one type scope every theme styles. The two alternatives were tried against the stock themes and rejected: support.type has no rule in either 'Dark+' or 'Dark (Visual Studio)', and entity.name.type has none in 'Dark (Visual Studio)' - in both cases the type matched but rendered in the default foreground, indistinguishable from a variable name. Under that theme keywords and types are both blue, but that is the theme flattening 'double' and 'const' into the same colour too, not something the grammar can fix. Listed longest-first for the same reason as #keywords.",
+      "name": "storage.type.mfront",
+      "match": "\\b(ThermalExpansionCoefficientTensor|DeformationGradientRateTensor|DeformationGradientTensor|ThermalConductivityMatrix|DisplacementTVector|TemperatureGradient|thermalconductivity|StrainRateStensor|StressRateStensor|FrequencyStensor|thermalexpansion|FrequencyTensor|StiffnessTensor|derivative_type|StrainStensor|StressStensor|energydensity|ForceTVector|StressTensor|displacement|inverse_type|massdensity|result_type|temperature|inv_length|strainrate|stressrate|frequency|HeatFlux|Stensor4|quantity|st2tost2|OpMinus|Stensor|TVector|fsarray|st2tot2|stensor|t2tost2|tmatrix|tvector|OpMult|OpPlus|Tensor|length|strain|stress|t2tot2|tensor|OpDiv|force|speed|real|time)\\b"
     }
   }
 }
