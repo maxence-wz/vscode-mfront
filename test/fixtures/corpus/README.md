@@ -16,5 +16,4 @@ The files are included unmodified, for testing only. They are excluded from
 the published extension by `.vscodeignore`, so the `.vsix` distributed on the
 Marketplace contains none of them.
 
-Fixtures written for this repository live in `../keyword-coverage/` and are
-MIT-licensed like the rest of the extension.
+Fixtures written for this repository live in `test/fixtures/` and in `test/fixtures/keyword-coverage/`, and are MIT-licensed like the rest of the extension.

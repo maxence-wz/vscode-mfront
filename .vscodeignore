@@ -3,9 +3,7 @@
 # refuses to run when a "files" allowlist in package.json is present too.
 .github/**
 .vscode/**
-.vscode-test/**
 test/**
-tools/**
 node_modules/**
 .gitattributes
 .gitignore
