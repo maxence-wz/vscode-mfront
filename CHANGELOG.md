@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-08-29
+
 ### 🐛 Bug Fixes
 - Fixed a scope leak where an `@Bounds`/`@PhysicalBounds` interval with an
   open (infinite) endpoint — e.g. `@PhysicalBounds M in [0:*[;`, the
@@ -17,6 +19,13 @@
   that follows. Added a grammar injection (`L:source.mfront -comment
   -string`) so the keyword rules apply inside nested scopes too, not only at
   the document root.
+
+### 🔧 Internal
+- Added a regression test suite tokenizing with the same engine VS Code uses,
+  against the real C++ grammar, so these leaks cannot come back unnoticed.
+
+Both fixes and the test suite were contributed by
+[@Auubinno](https://github.com/Auubinno).
 
 ## [1.0.0] - Initial Release
 
