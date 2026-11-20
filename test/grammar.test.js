@@ -1,13 +1,15 @@
 // Grammar regression tests.
 //
-// These guard the two scope-leak bugs fixed in PR #1. Both are interactions
-// between this grammar and the embedded C++ grammar, so the test tokenizes
-// with the same engine VS Code uses (vscode-textmate + vscode-oniguruma) and
-// loads the real cpp.tmLanguage.json rather than a stub -- a stub would not
-// reproduce the bugs at all.
+// Most of what can go wrong with this grammar is an interaction with the
+// embedded C++ grammar (a scope opened by source.cpp that never closes and
+// silently swallows the rest of the file), so the tests tokenize with the same
+// engine VS Code uses (vscode-textmate + vscode-oniguruma) and load the real
+// cpp.tmLanguage.json rather than a stub -- a stub would not reproduce those
+// bugs at all.
 //
-// The C++ grammar is fetched from the vscode repository at run time, so the
-// tests always run against the current one. Set CPP_TMLANGUAGE to a local path
+// The C++ grammar is fetched from the vscode repository at a pinned commit, so
+// a change upstream cannot turn the suite red on its own; bump CPP_GRAMMAR_SHA
+// deliberately to test against a newer one. Set CPP_TMLANGUAGE to a local path
 // to use a specific copy instead (offline runs, or reproducing a report
 // against one version):
 //
@@ -27,14 +29,26 @@ const KEYWORD_SCOPE = 'keyword.control.mfront';
 
 // --- the real C++ grammar --------------------------------------------------
 
+// Last commit touching cpp.tmLanguage.json when this was pinned (2026-11-20).
+const CPP_GRAMMAR_SHA = '7d8f6e4cf1742ed5c7353c4b86cbd17af4917436';
 const CPP_GRAMMAR_URL =
-  'https://raw.githubusercontent.com/microsoft/vscode/main/extensions/cpp/syntaxes/cpp.tmLanguage.json';
+  `https://raw.githubusercontent.com/microsoft/vscode/${CPP_GRAMMAR_SHA}/extensions/cpp/syntaxes/cpp.tmLanguage.json`;
+const FETCH_TIMEOUT_MS = 30_000;
 
 async function loadCppGrammarSource() {
   const local = process.env.CPP_TMLANGUAGE;
   if (local) return fs.readFileSync(local, 'utf8');
 
-  const response = await fetch(CPP_GRAMMAR_URL);
+  let response;
+  try {
+    response = await fetch(CPP_GRAMMAR_URL, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  } catch (err) {
+    throw new Error(
+      `Could not fetch the C++ grammar (${err.message}).\n` +
+      `If you are offline, point CPP_TMLANGUAGE at a local copy:\n` +
+      `  CPP_TMLANGUAGE=/path/to/cpp.tmLanguage.json npm test`
+    );
+  }
   if (!response.ok) {
     throw new Error(
       `Could not fetch the C++ grammar (${response.status} ${response.statusText}).\n` +
@@ -228,7 +242,77 @@ test('every @Description block shape opens and closes cleanly', () => {
 });
 
 test('@Description with no block yet does not swallow the directives below', () => {
-  assertAllDirectivesHighlighted('description-without-block.mfront');
+  const fixture = 'description-without-block.mfront';
+  assertAllDirectivesHighlighted(fixture);
+  // The directive check alone is not enough: the keyword injection can still
+  // highlight '@Author' while the block stays open, leaving the rest of the
+  // line (and file) inside meta.description.mfront with no C++ highlighting.
+  const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
+  let ruleStack = vsctm.INITIAL;
+  const stuck = [];
+  for (let i = 0; i < lines.length; i++) {
+    const { tokens, ruleStack: next } = grammar.tokenizeLine(lines[i], ruleStack);
+    ruleStack = next;
+    if (/^\s*@Description\b/.test(lines[i])) continue;
+    if (tokens.some((t) => t.scopes.includes('meta.description.mfront'))) {
+      stuck.push(`L${i + 1}: ${lines[i].trim()}`);
+    }
+  }
+  assert.deepStrictEqual(stuck, [], `${fixture}: the unfinished @Description block never closed`);
+});
+
+// Returns, per line, whether every non-blank token on it is description prose.
+function descriptionLines(fixture) {
+  const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
+  let ruleStack = vsctm.INITIAL;
+  return lines.map((text, i) => {
+    const { tokens, ruleStack: next } = grammar.tokenizeLine(text, ruleStack);
+    ruleStack = next;
+    const words = tokens.filter((t) => text.substring(t.startIndex, t.endIndex).trim());
+    return {
+      line: i + 1,
+      text,
+      prose: words.length > 0 &&
+        words.every((t) => t.scopes.includes('string.unquoted.description.mfront')),
+      anyProse: words.some((t) => t.scopes.includes('string.unquoted.description.mfront')),
+    };
+  });
+}
+
+test('@Description ends at a line-leading "}", not at a line ending with "};"', () => {
+  // '...\frac{E}{1-\nu};' ends with '};' but is prose. '} trailing' starts
+  // with '}', so it closes the block: what follows it is code again.
+  const fixture = 'description-closing-brace-in-prose.mfront';
+  const lines = descriptionLines(fixture);
+  const start = lines.findIndex((l) => /^@Description/.test(l.text));
+  const end = lines.findIndex((l, i) => i > start && /^\}/.test(l.text));
+  const notProse = lines.slice(start + 1, end).filter((l) => !l.prose);
+  assert.deepStrictEqual(
+    notProse.map((l) => `L${l.line}: ${l.text.trim()}`),
+    [],
+    `${fixture}: these lines fell out of the @Description block`
+  );
+  const after = lines.slice(end + 1).filter((l) => l.anyProse);
+  assert.deepStrictEqual(
+    after.map((l) => `L${l.line}: ${l.text.trim()}`),
+    [],
+    `${fixture}: the @Description block did not end at the line-leading "}"`
+  );
+  assertAllDirectivesHighlighted(fixture);
+  assertNoScopeLeakAtEof(fixture);
+});
+
+test('a single-line @Description closes on its own line', () => {
+  const fixture = 'description-single-line.mfront';
+  const swallowed = descriptionLines(fixture)
+    .filter((l) => /^(#include|static)/.test(l.text) && l.anyProse);
+  assert.deepStrictEqual(
+    swallowed.map((l) => `L${l.line}: ${l.text.trim()}`),
+    [],
+    `${fixture}: C++ after a single-line @Description was swallowed as prose`
+  );
+  assertAllDirectivesHighlighted(fixture);
+  assertNoScopeLeakAtEof(fixture);
 });
 
 // --- whole-grammar fixtures ------------------------------------------------
@@ -257,21 +341,24 @@ test('no whole-grammar fixture leaks a scope past EOF', () => {
   }
 });
 
-test('the keyword-coverage fixtures use every keyword the grammar declares as reachable', () => {
+test('the keyword-coverage fixtures use every keyword the grammar declares', () => {
   // Guards the fixtures themselves: if a keyword is added to the grammar but no
   // fixture ever uses it, nothing above would notice it was mistyped.
-  const declared = new Set(
-    JSON.parse(fs.readFileSync(path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'), 'utf8'))
-      .repository.keywords.match.replace(/^@\(/, '').replace(/\)\\b$/, '').split('|')
-  );
+  const declared = JSON.parse(
+    fs.readFileSync(path.join(REPO, 'syntaxes', 'mfront.tmLanguage.json'), 'utf8')
+  ).repository.keywords.match.replace(/^@\(/, '').replace(/\)\\b$/, '').split('|');
   const used = new Set();
   for (const f of listFixtures('keyword-coverage')) {
     for (const line of fs.readFileSync(path.join(FIXTURES, f), 'utf8').split(/\r?\n/)) {
       const m = /^\s*@([A-Za-z]\w*)/.exec(line);
-      if (m && declared.has(m[1])) used.add(m[1]);
+      if (m) used.add(m[1]);
     }
   }
-  assert.ok(used.size >= 125, `only ${used.size} keywords exercised by the fixtures`);
+  assert.deepStrictEqual(
+    declared.filter((k) => !used.has(k)).map((k) => `@${k}`),
+    [],
+    'these keywords are declared by the grammar but no keyword-coverage fixture uses them'
+  );
 });
 
 // --- keyword list integrity ------------------------------------------------
@@ -295,26 +382,41 @@ test('keyword alternatives are ordered so prefixes cannot shadow longer names', 
   assert.deepStrictEqual(shadowed, [], 'a longer keyword is listed after one of its prefixes');
 });
 
-test('both @Description braces are scoped as string so neither looks unmatched', () => {
-  // VS Code's bracket pair colorization ignores brackets that sit inside a
-  // string token. Scoping only the opening brace as string left the closing one
-  // looking like an unmatched bracket, which themes render in red.
-  for (const fixture of ['description-apostrophe.mfront', 'description-block-shapes.mfront']) {
+test('@Description braces are real brackets, prose braces are not', () => {
+  // The two braces delimiting the block must look like the braces of any other
+  // MFront block ('@InitLocalVariables{ ... }'): outside any string, so that
+  // bracket pair colorization paints them, and always in pairs, so that neither
+  // is shown as unmatched. Braces inside the prose (LaTeX, often unbalanced)
+  // must stay inside the string, which the bracket colorizer ignores.
+  const OUTER = /^punctuation\.section\.block\.(begin|end)\.bracket\.curly\.mfront$/;
+  const PROSE = /^punctuation\.section\.block\.begin\.mfront$/;
+  for (const fixture of ['description-apostrophe.mfront', 'description-block-shapes.mfront',
+                         'description-single-line.mfront', 'description-latex-braces.mfront',
+                         'description-closing-brace-in-prose.mfront']) {
     const lines = fs.readFileSync(path.join(FIXTURES, fixture), 'utf8').split(/\r?\n/);
     let ruleStack = vsctm.INITIAL;
+    const outer = { begin: 0, end: 0 };
     for (const line of lines) {
       const { tokens, ruleStack: next } = grammar.tokenizeLine(line, ruleStack);
       ruleStack = next;
       for (const t of tokens) {
-        const scopes = t.scopes.join(' ');
-        if (!/punctuation\.section\.block\.(begin|end)\.mfront/.test(scopes)) continue;
-        assert.ok(
-          t.scopes.some((s) => s.startsWith('string.')),
-          `${fixture}: ${JSON.stringify(line.substring(t.startIndex, t.endIndex))} ` +
-          `is a @Description brace but is not scoped as a string -> ${scopes}`
-        );
+        const text = JSON.stringify(line.substring(t.startIndex, t.endIndex));
+        const inString = t.scopes.some((s) => s.startsWith('string.'));
+        const o = t.scopes.find((s) => OUTER.test(s));
+        if (o) {
+          outer[OUTER.exec(o)[1]]++;
+          assert.ok(!inString,
+            `${fixture}: ${text} delimits @Description but is string-scoped -> ${t.scopes.join(' ')}`);
+        }
+        if (t.scopes.some((s) => PROSE.test(s))) {
+          assert.ok(inString,
+            `${fixture}: ${text} is a brace inside @Description prose but is not string-scoped`);
+        }
       }
     }
+    assert.ok(outer.begin > 0, `${fixture}: no @Description brace found`);
+    assert.strictEqual(outer.begin, outer.end,
+      `${fixture}: @Description braces are not paired (${outer.begin} opening, ${outer.end} closing)`);
   }
 });
 
@@ -363,7 +465,7 @@ test('a malformed bounds interval is flagged and does not swallow what follows',
     if (!/^\s*@(Physical)?Bounds\b/.test(line)) continue;
     if (tokens.some((t) => t.scopes.some((s) => s.startsWith('invalid.')))) flagged++;
   }
-  assert.strictEqual(flagged, 3, 'every malformed interval should be flagged');
+  assert.strictEqual(flagged, 4, 'every malformed interval should be flagged');
   assertAllDirectivesHighlighted(fixture);
   assertNoScopeLeakAtEof(fixture);
 });

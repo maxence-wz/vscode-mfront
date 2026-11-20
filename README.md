@@ -7,7 +7,7 @@ Adds syntax highlighting for MFront files in Visual Studio Code. Based on C++ sy
 ### From the VS Code Marketplace
 1. Open **Visual Studio Code**
 2. Go to the **Extensions** tab (`Ctrl+Shift+X` / `Cmd+Shift+X` on Mac)
-3. Search for `MFront Syntax Highlighting`
+3. Search for `MFront`
 4. Click **Install**
 
 ### Manual Installation
@@ -25,6 +25,8 @@ Adds syntax highlighting for MFront files in Visual Studio Code. Based on C++ sy
 
 ## 🚀 Usage
 Once the extension is installed, open a `.mfront` file in VS Code, and syntax highlighting will be applied automatically.
+
+No other extension is needed. The C++ code in `.mfront` files is highlighted by the C++ grammar that ships with VS Code (the built-in **C/C++ Language Basics** extension, enabled by default). If you have disabled C/C++ Language Basics, only the MFront-specific parts are highlighted: keywords, types etc.
 
 ## 📢 Contribute
 Contributions are welcome! To suggest improvements:
@@ -47,9 +49,10 @@ Code uses (`vscode-textmate` + `vscode-oniguruma`) and assert that every
 `@keyword` keeps its `keyword.control.mfront` scope.
 
 Because this grammar embeds `source.cpp`, the interesting failures are
-interactions with the real C++ grammar, so the tests fetch the current
-`cpp.tmLanguage.json` from the VS Code repository each run. To run offline, or
-against one specific version, point at a local copy:
+interactions with the real C++ grammar, so the tests fetch `cpp.tmLanguage.json`
+from the VS Code repository at a pinned commit (`CPP_GRAMMAR_SHA` in
+`test/grammar.test.js`). To run offline, or against another version, point at a
+local copy:
 
 ```sh
 CPP_TMLANGUAGE="/path/to/cpp.tmLanguage.json" npm test

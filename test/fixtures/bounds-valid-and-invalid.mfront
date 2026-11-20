@@ -15,4 +15,15 @@
 @MaterialProperty real r;
 @PhysicalBounds r in [-1.e-3:1.e-3];
 
+// Forms accepted by mfront::readVariableBounds besides the plain one: an array
+// index, a component selector, an open lower bound, and the positive/negative
+// half-lines written as R+ / R-.
+@StateVariable real s[3];
+@Bounds s[0] in [0:1];
+@Bounds s[1](*) in ]*:1];
+@StateVariable StrainStensor e;
+@Bounds e(2) in [-1:1];
+@PhysicalBounds p in ℝ₊;
+@Bounds q in ℝ₋;
+
 @Epsilon 1.e-14;

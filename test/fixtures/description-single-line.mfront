@@ -1,0 +1,12 @@
+// The single-line form '@Description{ ... }' must close on its own line,
+// with or without ';' and with a trailing comment, so the C++ below it is
+// highlighted as C++ rather than swallowed as description prose.
+@DSL Implicit;
+@Behaviour DescriptionSingleLine;
+@Description{ No semicolon, nested \frac{1}{2} braces }
+#include <cmath>
+@Description{ With a semicolon and a trailing comment }; // comment
+static int afterSemicolon;
+@Description { Space before the brace };
+static int afterSpace;
+@StateVariable real p;

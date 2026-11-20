@@ -1,0 +1,14 @@
+// Where @Description ends. A prose line that ENDS with '};' is still prose;
+// the block ends at the first '}' that STARTS a line, even if text follows it
+// on that line. The apostrophe after the '};' line is the tripwire: if the
+// block had ended there, it would open a C++ character literal.
+@DSL Implicit;
+@Behaviour DescriptionClosingBraceInProse;
+@Description{
+  The stress is given by \sigma = \frac{E}{1-\nu};
+  that's the material's elastic law.
+  toto{};
+} trailing
+static int afterDescription;
+@Author Extension test suite;
+@StateVariable real p;

@@ -1,0 +1,111 @@
+// Synthetic fixture: every keyword not exercised by the other coverage files.
+// Written by hand for this repository; not derived from any external source.
+// Directives from different DSLs and interfaces are mixed on purpose: this file
+// only has to tokenize, not to compile.
+@DSL Implicit;
+@Behaviour SyntheticRemaining;
+@MFront {"Other.mfront"};
+
+@Description{ Keywords that the other coverage fixtures do not reach. }
+
+// --- variables and aliases ---------------------------------------------------
+@AuxiliaryStateVar real a;
+@ComputedVar real cv;
+@ConstantMaterialProperty real cmp;
+@InitializeFunctionVariable real ifv;
+@PostProcessingVariable real ppv;
+@Domain "domain";
+@Domains {"d1", "d2"};
+@TFELLibraries {"TFELMath"};
+@Private{
+  void helper() {}
+}
+
+// --- algorithm and solver control -------------------------------------------
+@MaximumNumberOfIterations 100;
+@LinearSystemSolver Gauss;
+@PowellDogLegTrustRegionSize 1.e-3;
+@JacobianComparisonCriterion 1.e-6;
+@StressErrorNormalisationFactor young;
+@StressErrorNormalizationFactor young;
+@MinimalTimeStep 1.e-8;
+@MinimalTimeStepScalingFactor 0.1;
+@APrioriTimeStepScalingFactor{
+}
+@RequireStiffnessOperator;
+@RequireThermalExpansionCoefficientTensor;
+@UsableInPurelyImplicitResolution;
+@IsotropicBehaviour;
+@SelectedModellingHypothesis Tridimensional;
+@SelectedModellingHypotheses {Tridimensional};
+@AdditionalTangentOperatorBlocks {"dsig_ddeto"};
+@TangentOperatorBlock dsig_ddeto;
+
+// --- code blocks -------------------------------------------------------------
+@Initialize{
+}
+@InitializeFunction f{
+}
+@InitializeJacobian{
+}
+@InitializeJacobianInvert{
+}
+@InitJacobianInvert{
+}
+@PostProcessing p{
+}
+@ProcessNewCorrection{
+}
+@ProcessNewEstimate{
+}
+@RejectCurrentCorrection{
+}
+@ComputeCohesiveForce{
+}
+@ComputeCohesizeForce{
+}
+@ComputeFinalCohesiveForce{
+}
+@ComputeFinalCohesizeForce{
+}
+@SpeedOfSound{
+}
+
+// --- crystal plasticity ------------------------------------------------------
+@SlipSystem <1,-1,0>{1,1,1};
+@SlipSystems {<1,-1,0>{1,1,1}};
+@GlidingSystem <1,-1,0>{1,1,1};
+@GlidingSystems {<1,-1,0>{1,1,1}};
+@SlidingSystems {<1,-1,0>{1,1,1}};
+@DislocationsMeanFreePathInteractionMatrix {1, 0.5};
+
+// --- interface-specific options ----------------------------------------------
+@AbaqusCompareToNumericalTangentOperator true;
+@AbaqusExplicitParallelizationPolicy Vectorize;
+@AbaqusStrainPerturbationValue 1.e-8;
+@AbaqusTangentOperatorComparisonCriterion 1.e-5;
+@AbaqusTangentOperatorComparisonCriterium 1.e-5;
+@AnsysCompareToNumericalTangentOperator true;
+@AnsysGenerateMTestFileOnFailure true;
+@AnsysStrainPerturbationValue 1.e-8;
+@AnsysTangentOperatorComparisonCriterion 1.e-5;
+@AnsysTangentOperatorComparisonCriterium 1.e-5;
+@AsterErrorReport true;
+@AsterTangentOperatorComparisonCriterion 1.e-5;
+@CalculiXGenerateMTestFileOnFailure true;
+@CastemDoSubSteppingOnInvalidResults true;
+@CastemFiniteStrainStrategies {"None"};
+@CastemMaximumSubStepping 10;
+@CastemUseTimeSubStepping true;
+@CyranoDoSubSteppingOnInvalidResults true;
+@DianaFEAGenerateMTestFileOnFailure true;
+@GenerateMTestFileOnFailure true;
+@GenericInterfaceGenerateMTestFileOnFailure true;
+@UMATDoSubSteppingOnInvalidResults true;
+@UMATGenerateMTestFileOnFailure true;
+
+// --- material-property interface keys ----------------------------------------
+@Module m;
+@Package p;
+@Graph "graph";
+@TestBounds T in [0:1];

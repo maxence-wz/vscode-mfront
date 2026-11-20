@@ -8,5 +8,7 @@
 @Bounds y in 0:1];
 @MaterialProperty real z;
 @PhysicalBounds z in [abc:*[;
+@MaterialProperty real w;
+@Bounds w in [0:1]garbage;
 
 @Epsilon 1.e-14;

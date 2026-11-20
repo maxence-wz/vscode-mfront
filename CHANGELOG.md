@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+### 🐛 Bug Fixes
+- `@Description` no longer ends early on a prose line that ends with `};`
+  (e.g. `\frac{E}{1-\nu};`). It ends at the first `}` that starts a line,
+  even when text follows that brace.
+- A single-line `@Description{ ... }` without `;`, or followed by a comment,
+  now closes on its own line instead of swallowing the C++ code below it.
+- Valid `@Bounds` forms are no longer flagged as errors: array components
+  (`a[0]`), component selectors (`e(2)`, `e(*)`) and `in ℝ₊` / `in ℝ₋`.
+  Trailing garbage after the interval (`[0:1]x;`) is now flagged.
+- The braces of `@Description{ ... }` are now coloured like those of any other
+  MFront block (`@InitLocalVariables{ ... }`) instead of like the prose; only
+  the text between them is shown as a description.
+- Typing a quote inside `@Description` prose or a comment no longer inserts a
+  second one.
+
+### 🚀 New Features
+- 41 more keywords recognised, taken from the TFEL sources, among them
+  `@TFELLibraries`, `@AdditionalTangentOperatorBlocks`,
+  `@TangentOperatorBlock`, `@LinearSystemSolver`, `@Domain(s)`,
+  `@ConstantMaterialProperty`, the cohesive-zone ones (`@ComputeCohesiveForce`,
+  ...) and more interface options (`@Abaqus*`, `@Ansys*`, `@Castem*`, `@UMAT*`,
+  `@DianaFEA*`, ...).
+- `/** */` comments continue on Enter; `#pragma region` folding.
+
+### 🔧 Internal
+- Every keyword in the grammar is now exercised by a fixture, and the test
+  enforces it (33 were previously untested).
+- The tests use a pinned version of the C++ grammar, with a fetch timeout.
+- Removed the `embeddedLanguages` entry, which had no effect.
+
 ## [1.1.0] - 2026-08-29
 
 ### 🐛 Bug Fixes

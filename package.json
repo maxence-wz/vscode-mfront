@@ -16,10 +16,7 @@
       {
         "language": "mfront",
         "scopeName": "source.mfront",
-        "path": "./syntaxes/mfront.tmLanguage.json",
-        "embeddedLanguages": {
-          "source.cpp": "cpp"
-        }
+        "path": "./syntaxes/mfront.tmLanguage.json"
       },
       {
         "scopeName": "mfront.keywords.injection",

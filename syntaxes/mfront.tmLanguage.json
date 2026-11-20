@@ -26,7 +26,37 @@
   ],
   "repository": {
     "description-block": {
-      "comment": "@Description holds free-form prose, not C++. Handing that prose to the embedded source.cpp grammar is what causes scope leaks that silently break highlighting for the rest of the file: an apostrophe in ordinary prose (\"the material's behaviour\") opens string.quoted.single.cpp, a stray double quote opens string.quoted.double.cpp, and a sentence shaped like 'A B, C (D)' opens meta.declaration.cpp - none of which ever close, because prose has no matching delimiter and ends sentences with '.' not ';'. The keyword injection cannot rescue the string cases, since its selector deliberately excludes -string. So the block is consumed here instead, with no 'include' of source.cpp: everything between @Description and the closing brace is inert text, scoped as string.unquoted.description.mfront so themes render the prose the way they render a string literal. The begin pattern deliberately does not require '{' on the same line, because '@Description' followed by '{' on the next line is common in real files. The end pattern does NOT simply match the next '}': real descriptions embed LaTeX, and those braces are not balanced ('\\left\\{ ... \\right.' opens one that is never closed), so neither a plain '\\}' nor a brace-counting rule terminates in the right place. What is reliable in practice is that the block's own closing brace sits alone on its line, hence '^\\s*\\}\\s*;?'; '\\}\\s*;\\s*$' additionally covers the single-line form '@Description{ ... };'. The last alternative, '^(?=\\s*@[A-Za-z]\\w*)', is a safety net: an '@Description' with no block yet - what the file looks like while the user is still typing - degrades to plain highlighting instead of swallowing every directive below it. This rule must be included BEFORE '#keywords', otherwise '#keywords' matches '@Description' first and the body falls through to source.cpp. Both braces are scoped under string.unquoted.description.mfront, not just the prose between them: VS Code's bracket pair colorization ignores brackets inside a string token, so scoping only the opening one would leave the closing brace looking like an unmatched bracket and render it red.",
+      "comment": "@Description holds free-form prose, not C++. Two shapes, tried in this order: #description-inline for a block that opens and closes on the '@Description' line itself, then #description-multiline for everything else. Both are included here so the root grammar and the injection only need to reference this one name; it must be included BEFORE '#keywords', otherwise '#keywords' matches '@Description' first and the body falls through to source.cpp.",
+      "patterns": [
+        {
+          "include": "#description-inline"
+        },
+        {
+          "include": "#description-multiline"
+        }
+      ]
+    },
+    "description-inline": {
+      "comment": "Single-line form, '@Description{ text }' with or without the trailing ';' and optionally followed by a comment. The multi-line rule cannot handle it: its closing brace is not alone on its line, so the block would run on and swallow the C++ code below as prose. The body must be brace-balanced (the recursive call \\g<4> matches nested '{...}', so '\\frac{1}{2}' is fine); a first line whose braces do not balance - e.g. '@Description { see \\frac{1}{2}' continuing below - is not a complete single-line block and is left to #description-multiline. The lookahead requires the rest of the line to be empty, a ';' or a comment, so '@Description{ x } trailing' is not treated as complete either.",
+      "name": "meta.description.mfront",
+      "match": "(@Description)\\s*(\\{)((?:[^{}]|(\\{(?:[^{}]|\\g<4>)*\\}))*)(\\})(?=\\s*;?\\s*(?://.*|/\\*.*)?$)",
+      "captures": {
+        "1": {
+          "name": "keyword.control.mfront"
+        },
+        "2": {
+          "name": "punctuation.section.block.begin.bracket.curly.mfront"
+        },
+        "3": {
+          "name": "string.unquoted.description.mfront"
+        },
+        "5": {
+          "name": "punctuation.section.block.end.bracket.curly.mfront"
+        }
+      }
+    },
+    "description-multiline": {
+      "comment": "Multi-line @Description block. Handing that prose to the embedded source.cpp grammar is what causes scope leaks that silently break highlighting for the rest of the file: an apostrophe in ordinary prose (\"the material's behaviour\") opens string.quoted.single.cpp, a stray double quote opens string.quoted.double.cpp, and a sentence shaped like 'A B, C (D)' opens meta.declaration.cpp - none of which ever close, because prose has no matching delimiter and ends sentences with '.' not ';'. The keyword injection cannot rescue the string cases, since its selector deliberately excludes -string. So the block is consumed here instead, with no 'include' of source.cpp: everything between @Description and the closing brace is inert text, scoped as string.unquoted.description.mfront so themes render the prose the way they render a string literal. The begin pattern deliberately does not require '{' on the same line, because '@Description' followed by '{' on the next line is common in real files. The end pattern does NOT simply match the next '}': real descriptions embed LaTeX, and those braces are not balanced ('\\left\\{ ... \\right.' opens one that is never closed), so neither a plain '\\}' nor a brace-counting rule terminates in the right place. What is reliable in practice is that the block's own closing brace sits alone on its line, hence '^\\s*\\}\\s*;?': a '}' that STARTS a line closes the block, whatever follows it on that line ('} trailing text' ends the description at the brace, and the text after it is ordinary code again). A prose line that merely ENDS with '};' ('\\frac{E}{1-\\nu};') does not close it. The known cost is that a LaTeX continuation line starting with '}' ends the block early; write such lines with leading prose instead. The single-line form is handled by #description-inline instead. The last alternative, '^(?=\\s*@[A-Za-z]\\w*)', is a safety net: an '@Description' with no block yet - what the file looks like while the user is still typing - degrades to plain highlighting instead of swallowing every directive below it. The two outer braces are NOT part of the string: they are scoped as ordinary curly brackets so that bracket pair colorization paints them exactly like the braces of '@InitLocalVariables{ ... }' and every other MFront block. That is why the rule is split in two: this outer rule spans from '@Description' to the closing brace, and #description-body, starting at the opening brace, is the only part carrying the string scope. Braces inside the prose (LaTeX) stay inside that string, so the bracket colorizer ignores them and an unbalanced '\\left\\{' cannot be mistaken for an unmatched bracket. The outer rule ends right after the body's closing brace ('(?<=\\})'), or on the same safety net as the body.",
       "name": "meta.description.mfront",
       "begin": "(@Description)\\b",
       "beginCaptures": {
@@ -34,10 +64,25 @@
           "name": "keyword.control.mfront"
         }
       },
-      "end": "^\\s*\\}\\s*;?|\\}\\s*;\\s*$|^(?=\\s*@[A-Za-z]\\w*)",
-      "endCaptures": {
+      "end": "(?<=\\})|^(?=\\s*@[A-Za-z]\\w*)",
+      "patterns": [
+        {
+          "include": "#description-body"
+        }
+      ]
+    },
+    "description-body": {
+      "comment": "The braced body of a multi-line @Description; see #description-multiline for where it ends and why. Only the text between the braces is scoped as a string.",
+      "begin": "\\{",
+      "beginCaptures": {
         "0": {
-          "name": "string.unquoted.description.mfront punctuation.section.block.end.mfront"
+          "name": "punctuation.section.block.begin.bracket.curly.mfront"
+        }
+      },
+      "end": "^\\s*(\\})|^(?=\\s*@[A-Za-z]\\w*)",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.block.end.bracket.curly.mfront"
         }
       },
       "contentName": "string.unquoted.description.mfront",
@@ -49,8 +94,8 @@
       ]
     },
     "bounds-interval": {
-      "comment": "A well-formed @Bounds / @PhysicalBounds interval. MFront marks an open (infinite) endpoint with an inverted bracket and '*' for infinity, e.g. '@PhysicalBounds M in [0:*[;', so a correct interval legitimately leaves unbalanced square brackets on the line. Two separate problems follow from that, and this rule fixes both. (1) Being a single-line 'match', the brackets never reach the embedded source.cpp grammar, which would otherwise start its multi-line meta.bracket.square.array.cpp begin/end pair, never find the ']', and keep that scope open for the rest of the file - silently killing keyword.control.mfront on every later '@Xxx'. (2) The bracket characters are scoped under 'string.other.bounds.mfront' rather than as plain punctuation. VS Code's bracket pair colorization ignores brackets inside a string token; without this they are seen as unmatched openers and rendered red, as if the (perfectly valid) interval were a syntax error. The digits keep constant.numeric so only the brackets change colour. Verified against every @Bounds/@PhysicalBounds line in tfel's test suite: 78/78 match this rule. Anything that does NOT match falls through to #bounds-interval-invalid below, which is what makes a genuinely malformed interval show up as an error.",
-      "match": "(@(?:Physical)?Bounds)\\b(\\s+[A-Za-z_]\\w*\\s+)(in)\\s*([\\[\\]])\\s*((?:[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?|[-+]?\\*))\\s*(:)\\s*((?:[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?|[-+]?\\*))\\s*([\\[\\]])",
+      "comment": "A well-formed @Bounds / @PhysicalBounds interval. MFront marks an open (infinite) endpoint with an inverted bracket and '*' for infinity, e.g. '@PhysicalBounds M in [0:*[;', so a correct interval legitimately leaves unbalanced square brackets on the line. Two separate problems follow from that, and this rule fixes both. (1) Being a single-line 'match', the brackets never reach the embedded source.cpp grammar, which would otherwise start its multi-line meta.bracket.square.array.cpp begin/end pair, never find the ']', and keep that scope open for the rest of the file - silently killing keyword.control.mfront on every later '@Xxx'. (2) The bracket characters are scoped under 'string.other.bounds.mfront' rather than as plain punctuation. VS Code's bracket pair colorization ignores brackets inside a string token; without this they are seen as unmatched openers and rendered red, as if the (perfectly valid) interval were a syntax error. The digits keep constant.numeric so only the brackets change colour. The accepted syntax mirrors mfront::readVariableBounds (mfront/src/DSLUtilities.cxx in TFEL): the variable name may carry an array index 'a[2]' and/or a component selector 'a(1)' / 'a(*)', the domain may be written as an interval or as 'ℝ₊' / 'ℝ₋', and an infinite endpoint is a bare '*'. The match must be followed by ';' (the parser requires it), so trailing garbage such as '[0:1]x;' is flagged instead of silently accepted. Verified against every @Bounds/@PhysicalBounds line in tfel's test suite. Anything that does NOT match falls through to #bounds-interval-invalid below, which is what makes a genuinely malformed interval show up as an error.",
+      "match": "(@(?:Physical)?Bounds)\\b(\\s+[^\\W\\d]\\w*(?:\\s*\\[\\s*\\d+\\s*\\])?(?:\\s*\\(\\s*(?:\\d+|\\*)\\s*\\))?\\s*)(?<!\\w)(in)\\b\\s*(?:(ℝ₊|ℝ₋)|([\\[\\]])\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?|\\*)\\s*(:)\\s*([-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?|\\*)\\s*([\\[\\]]))(?=\\s*;)",
       "captures": {
         "1": {
           "name": "keyword.control.mfront"
@@ -62,31 +107,34 @@
           "name": "keyword.operator.mfront"
         },
         "4": {
-          "name": "string.other.bounds.mfront punctuation.section.bounds.mfront"
+          "name": "constant.language.bounds.mfront"
         },
         "5": {
-          "name": "constant.numeric.mfront"
+          "name": "string.other.bounds.mfront punctuation.section.bounds.mfront"
         },
         "6": {
-          "name": "punctuation.separator.bounds.mfront"
-        },
-        "7": {
           "name": "constant.numeric.mfront"
         },
+        "7": {
+          "name": "punctuation.separator.bounds.mfront"
+        },
         "8": {
+          "name": "constant.numeric.mfront"
+        },
+        "9": {
           "name": "string.other.bounds.mfront punctuation.section.bounds.mfront"
         }
       }
     },
     "keywords": {
       "name": "keyword.control.mfront",
-      "match": "@(PerturbationValueForNumericalJacobianComputation|DislocationsMeanFreePathInteractionMatrix|RequireThermalExpansionCoefficientTensor|AsterTangentOperatorComparisonCriterium|AsterCompareToNumericalTangentOperator|MaximumIncrementValuePerIteration|NumericallyComputedJacobianBlocks|APosterioriTimeStepScalingFactor|AbaqusGenerateMTestFileOnFailure|AbaqusOrthotropyManagementPolicy|CastemGenerateMTestFileOnFailure|CyranoGenerateMTestFileOnFailure|ProvidesSymmetricTangentOperator|UsableInPurelyImplicitResolution|AsterGenerateMTestFileOnFailure|ComputeFinalThermodynamicForces|AdditionalTangentOperatorBlock|StressErrorNormalisationFactor|StressErrorNormalizationFactor|UpdateAuxiliaryStateVariables|APrioriTimeStepScalingFactor|AsterFiniteStrainFormulation|AsterStrainPerturbationValue|CalculiXFiniteStrainStrategy|MaximalTimeStepScalingFactor|MinimalTimeStepScalingFactor|AdditionalConvergenceChecks|JacobianComparisonCriterion|JacobianComparisonCriterium|AbaqusFiniteStrainStrategy|CastemFiniteStrainStrategy|CompareToNumericalJacobian|ComputeStressFreeExpansion|ComputeThermodynamicForces|InitializeFunctionVariable|IsTangentOperatorSymmetric|UMATFiniteStrainStrategies|AnsysFiniteStrainStrategy|ElasticMaterialProperties|IsotropicElasticBehaviour|MaximumNumberOfIterations|AsterSaveTangentOperator|BehaviourVariableFactory|CyranoMaximumSubStepping|CyranoUseTimeSubStepping|InitializeJacobianInvert|InitializeLocalVariables|RequireStiffnessOperator|UMATFiniteStrainStrategy|UpdateAuxiliaryStateVars|ComputeThermalExpansion|IsotropicHardeningRules|ProvidesTangentOperator|RejectCurrentCorrection|AuxiliaryStateVariable|ComputeStiffnessTensor|IsotropicHardeningRule|PostProcessingVariable|RequireStiffnessTensor|UMATMaximumSubStepping|UMATUseTimeSubStepping|BindDomainToParameter|ExternalStateVariable|TangentOperatorBlocks|OrthotropicBehaviour|ProcessNewCorrection|IntegrationVariable|ModellingHypotheses|ModellingHypothesis|ComputeFinalStress|InitJacobianInvert|InitLocalVariables|InitializeFunction|InitializeJacobian|IsotropicBehaviour|PredictionOperator|ProcessNewEstimate|ThermodynamicForce|AuxiliaryStateVar|BehaviourVariable|InteractionMatrix|CrystalStructure|DissipatedEnergy|ExternalStateVar|MaterialProperty|IntegerConstant|LoadingVariable|MinimalTimeStep|TangentOperator|AuxiliaryModel|GlidingSystems|InternalEnergy|LocalParameter|PhysicalBounds|PostProcessing|SlidingSystems|StaticVariable|ComputeStress|GlidingSystem|InitLocalVars|LocalVariable|SlidingSystem|StateVariable|StrainMeasure|InitJacobian|SpeedOfSound|AxialGrowth|ComputedVar|Description|MaterialLaw|SlipSystems|Derivative|HillTensor|Initialize|Integrator|Relocation|SlipSystem|UnitSystem|Algorithm|Behaviour|Interface|Parameter|Predictor|Profiling|StaticVar|Constant|FlowRule|Function|Gradient|Includes|LocalVar|Material|StateVar|Swelling|Epsilon|IterMax|Library|Members|Private|Sources|Author|Bounds|Import|MFront|Output|Parser|Brick|Input|Model|Theta|UseQt|Coef|Data|Date|Flux|Link|DSL|Law)\\b",
+      "match": "@(PerturbationValueForNumericalJacobianComputation|GenericInterfaceGenerateMTestFileOnFailure|DislocationsMeanFreePathInteractionMatrix|AbaqusTangentOperatorComparisonCriterion|AbaqusTangentOperatorComparisonCriterium|RequireThermalExpansionCoefficientTensor|AbaqusCompareToNumericalTangentOperator|AnsysTangentOperatorComparisonCriterion|AnsysTangentOperatorComparisonCriterium|AsterTangentOperatorComparisonCriterion|AsterTangentOperatorComparisonCriterium|AnsysCompareToNumericalTangentOperator|AsterCompareToNumericalTangentOperator|AbaqusExplicitParallelizationPolicy|CastemDoSubSteppingOnInvalidResults|CyranoDoSubSteppingOnInvalidResults|CalculiXGenerateMTestFileOnFailure|DianaFEAGenerateMTestFileOnFailure|MaximumIncrementValuePerIteration|NumericallyComputedJacobianBlocks|UMATDoSubSteppingOnInvalidResults|AbaqusGenerateMTestFileOnFailure|AbaqusOrthotropyManagementPolicy|APosterioriTimeStepScalingFactor|CastemGenerateMTestFileOnFailure|CyranoGenerateMTestFileOnFailure|ProvidesSymmetricTangentOperator|UsableInPurelyImplicitResolution|AdditionalTangentOperatorBlocks|AnsysGenerateMTestFileOnFailure|AsterGenerateMTestFileOnFailure|ComputeFinalThermodynamicForces|AdditionalTangentOperatorBlock|StressErrorNormalisationFactor|StressErrorNormalizationFactor|UMATGenerateMTestFileOnFailure|AbaqusStrainPerturbationValue|UpdateAuxiliaryStateVariables|AnsysStrainPerturbationValue|APrioriTimeStepScalingFactor|AsterFiniteStrainFormulation|AsterStrainPerturbationValue|CalculiXFiniteStrainStrategy|CastemFiniteStrainStrategies|MaximalTimeStepScalingFactor|MinimalTimeStepScalingFactor|AdditionalConvergenceChecks|JacobianComparisonCriterion|JacobianComparisonCriterium|PowellDogLegTrustRegionSize|SelectedModellingHypotheses|SelectedModellingHypothesis|AbaqusFiniteStrainStrategy|CastemFiniteStrainStrategy|CompareToNumericalJacobian|ComputeStressFreeExpansion|ComputeThermodynamicForces|GenerateMTestFileOnFailure|InitializeFunctionVariable|IsTangentOperatorSymmetric|UMATFiniteStrainStrategies|AnsysFiniteStrainStrategy|ComputeFinalCohesiveForce|ComputeFinalCohesizeForce|ElasticMaterialProperties|IsotropicElasticBehaviour|MaximumNumberOfIterations|AsterSaveTangentOperator|BehaviourVariableFactory|CastemMaximumSubStepping|CastemUseTimeSubStepping|ConstantMaterialProperty|CyranoMaximumSubStepping|CyranoUseTimeSubStepping|InitializeJacobianInvert|InitializeLocalVariables|RequireStiffnessOperator|UMATFiniteStrainStrategy|UpdateAuxiliaryStateVars|ComputeThermalExpansion|IsotropicHardeningRules|ProvidesTangentOperator|RejectCurrentCorrection|AuxiliaryStateVariable|ComputeStiffnessTensor|IsotropicHardeningRule|PostProcessingVariable|RequireStiffnessTensor|UMATMaximumSubStepping|UMATUseTimeSubStepping|BindDomainToParameter|ExternalStateVariable|TangentOperatorBlocks|ComputeCohesiveForce|ComputeCohesizeForce|OrthotropicBehaviour|ProcessNewCorrection|TangentOperatorBlock|IntegrationVariable|ModellingHypotheses|ModellingHypothesis|ComputeFinalStress|InitializeFunction|InitializeJacobian|InitJacobianInvert|InitLocalVariables|IsotropicBehaviour|LinearSystemSolver|PredictionOperator|ProcessNewEstimate|ThermodynamicForce|AuxiliaryStateVar|BehaviourVariable|InteractionMatrix|AsterErrorReport|CrystalStructure|DissipatedEnergy|ExternalStateVar|MaterialProperty|IntegerConstant|LoadingVariable|MinimalTimeStep|TangentOperator|AuxiliaryModel|GlidingSystems|InternalEnergy|LocalParameter|PhysicalBounds|PostProcessing|SlidingSystems|StaticVariable|ComputeStress|GlidingSystem|InitLocalVars|LocalVariable|SlidingSystem|StateVariable|StrainMeasure|TFELLibraries|InitJacobian|SpeedOfSound|AxialGrowth|ComputedVar|Description|MaterialLaw|SlipSystems|Derivative|HillTensor|Initialize|Integrator|Relocation|SlipSystem|TestBounds|UnitSystem|Algorithm|Behaviour|Interface|Parameter|Predictor|Profiling|StaticVar|Constant|FlowRule|Function|Gradient|Includes|LocalVar|Material|StateVar|Swelling|Domains|Epsilon|IterMax|Library|Members|Package|Private|Sources|Author|Bounds|Domain|Import|MFront|Module|Output|Parser|Brick|Graph|Input|Model|Theta|UseQt|Coef|Data|Date|Flux|Link|DSL|Law)\\b",
       "captures": {
         "0": {
           "name": "keyword.control.mfront"
         }
       },
-      "comment": "Full list of MFront '@Xxx' keywords, including the interface-specific ones (@Abaqus*, @Aster*, @Castem*, @Cyrano*, @UMAT*, @CalculiX*, @Ansys*) and the generic-behaviour ones (@Gradient, @Flux, @ThermodynamicForce, @TangentOperatorBlock(s)). Alternatives are ordered longest-first: TextMate alternation is leftmost-first, not longest-match, so '@TangentOperator' listed before '@TangentOperatorBlocks' would match only the shorter prefix and leave 'Blocks' unhighlighted. To add keywords, list them with `mfront --list-dsl` then `mfront --help-keywords-list=<DSL>`, and edit this list by hand keeping the longest-first order."
+      "comment": "Full list of MFront '@Xxx' keywords, including the interface-specific ones (@Abaqus*, @Aster*, @Castem*, @Cyrano*, @UMAT*, @CalculiX*, @Ansys*) and the generic-behaviour ones (@Gradient, @Flux, @ThermodynamicForce, @TangentOperatorBlock(s)). Alternatives are ordered longest-first: TextMate alternation is leftmost-first, not longest-match, so '@TangentOperator' listed before '@TangentOperatorBlocks' would match only the shorter prefix and leave 'Blocks' unhighlighted. The list is the union of every '@Xxx' keyword registered in TFEL's mfront sources (grep for string literals \"@Xxx\" under mfront/src and mfront/include) plus a few documented in its docs. To refresh it, either run `mfront --list-dsl` then `mfront --help-keywords-list=<DSL>`, or re-grep the sources; keep the longest-first order (the test suite enforces it)."
     },
     "bounds-interval-invalid": {
       "comment": "Anything shaped like a bounds declaration that #bounds-interval did not accept: a missing bracket, a non-numeric endpoint, a missing ':' and so on. Scoped invalid.illegal so themes render it as an error, which is the point - a correct interval must NOT look like an error, and an incorrect one must. It is still a single-line 'match', so a malformed line cannot leak a bracket scope into the rest of the file either. Must come after #bounds-interval and before #keywords.",
